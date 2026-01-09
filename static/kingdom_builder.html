@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Kingdom Builder - Spieler auswählen</title>
+<style>
+  body {
+    display: flex;
+    font-family: Arial, sans-serif;
+    gap: 20px;
+    padding: 20px;
+  }
+
+  .left-panel {
+    flex: 1;
+    max-width: 400px;
+  }
+
+  .right-panel {
+    flex: 2;
+    border: 1px solid #ccc;
+    padding: 10px;
+    min-height: 300px;
+  }
+
+  #playerInputContainer {
+    position: relative;
+    width: 100%;
+    margin-top: 10px;
+  }
+
+  #playerInput {
+    width: 100%;
+    padding: 5px;
+  }
+
+  #suggestions {
+    border: 1px solid #ccc;
+    max-height: 150px;
+    overflow-y: auto;
+    position: absolute;
+    background: white;
+    width: 100%;
+    z-index: 10;
+  }
+
+  .suggestion-item {
+    padding: 5px;
+    cursor: pointer;
+  }
+
+  .suggestion-item:hover {
+    background-color: #eee;
+  }
+
+  #selectedPlayers {
+    margin-top: 10px;
+  }
+
+  .player-tag {
+    display: inline-block;
+    padding: 5px 10px;
+    background-color: #007bff;
+    color: white;
+    border-radius: 15px;
+    margin: 3px;
+    cursor: pointer;
+  }
+
+  .player-tag:hover {
+    background-color: #0056b3;
+  }
+
+  button {
+    margin-top: 10px;
+    padding: 8px 12px;
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .section {
+    margin-bottom: 20px;
+  }
+
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin-top: 10px;
+  }
+
+  table, th, td {
+    border: 1px solid #ccc;
+  }
+
+  th, td {
+    padding: 5px;
+    text-align: center;
+  }
+
+  input.score-input {
+    width: 50px;
+    text-align: center;
+  }
+
+  #startGameBtn.enabled {
+    opacity: 1;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+<div class="left-panel">
+  <h1>Kingdom Builder</h1>
+
+  <div class="section">
+    <label for="playerCount">Spieleranzahl auswählen:</label>
+    <select id="playerCount">
+        <option value="">Bitte auswählen</option>
+        <option value="2">2 Spieler</option>
+        <option value="3">3 Spieler</option>
+        <option value="4">4 Spieler</option>
+        <option value="5">5 Spieler</option>
+    </select>
+  </div>
+
+  <div class="section">
+    <h3>Spieler auswählen</h3>
+    <div id="playerInputContainer">
+      <input type="text" id="playerInput" placeholder="Spieler eingeben..." autocomplete="off" disabled>
+      <div id="suggestions"></div>
+    </div>
+    <div id="selectedPlayers"></div>
+    <p>Ausgewählte Spieler: <span id="playerCountDisplay">0</span></p>
+  </div>
+
+  <button id="startGameBtn" disabled>Spiel starten</button>
+</div>
+
+<div class="right-panel">
+  <div class="section">
+    <h3>Match Settings</h3>
+    <div id="matchSettings">Hier werden die Match-Daten angezeigt...</div>
+  </div>
+
+  <div class="section">
+    <h3>Tasks & Punkte</h3>
+    <div id="tasksContainer">Hier werden die Tasks aufgelistet...</div>
+    <button id="saveScoresBtn" disabled>Punkte speichern</button>
+  </div>
+</div>
+
+<script>
+const API_URL = "http://127.0.0.1:8000";
+const token = localStorage.getItem("token");
+
+if (!token) {
+    window.location.href = "/static/index.html";
+}
+
+let MAX_PLAYERS = 0;
+let users = [];
+let selectedPlayers = [];
+let currentTasks = []; // Tasks des aktuellen Spiels
+
+const playerCountSelect = document.getElementById("playerCount");
+const input = document.getElementById("playerInput");
+const suggestions = document.getElementById("suggestions");
+const selectedContainer = document.getElementById("selectedPlayers");
+const countDisplay = document.getElementById("playerCountDisplay");
+const startBtn = document.getElementById("startGameBtn");
+const matchSettingsDiv = document.getElementById("matchSettings");
+const tasksContainer = document.getElementById("tasksContainer");
+const saveScoresBtn = document.getElementById("saveScoresBtn");
+
+// Nutzerliste aus API laden
+async function fetchUsers() {
+    const res = await fetch(`${API_URL}/users/`, {
+        headers: { "Authorization": `Bearer ${token}` }
+    });
+    users = await res.json();
+}
+
+fetchUsers();
+
+// Initial Button deaktivieren
+startBtn.disabled = true;
+startBtn.style.opacity = 0.5;
+startBtn.style.cursor = "not-allowed";
+saveScoresBtn.disabled = true;
+
+// Spieleranzahl auswählen
+playerCountSelect.addEventListener("change", () => {
+    const val = parseInt(playerCountSelect.value);
+    if (!isNaN(val)) {
+        MAX_PLAYERS = val;
+        selectedPlayers = []; // Auswahl zurücksetzen
+        renderSelectedPlayers();
+        input.disabled = false;
+        updateStartButton();
+    } else {
+        MAX_PLAYERS = 0;
+        input.disabled = true;
+        selectedPlayers = [];
+        renderSelectedPlayers();
+        updateStartButton();
+    }
+});
+
+// Vorschläge anzeigen
+function showSuggestions() {
+    const query = input.value.toLowerCase();
+    suggestions.innerHTML = "";
+    if (!query) return;
+
+    const matches = users.filter(u =>
+        u.name.toLowerCase().includes(query) &&
+        !selectedPlayers.includes(u.name)
+    );
+
+    matches.forEach(user => {
+        const div = document.createElement("div");
+        div.textContent = user.name;
+        div.classList.add("suggestion-item");
+        div.onclick = () => selectPlayer(user.name);
+        suggestions.appendChild(div);
+    });
+}
+
+// Spieler auswählen
+function selectPlayer(name) {
+    if (MAX_PLAYERS === 0) {
+        alert("Bitte zuerst die Spieleranzahl auswählen!");
+        return;
+    }
+    if (selectedPlayers.length >= MAX_PLAYERS) {
+        alert("Maximale Spieleranzahl erreicht!");
+        return;
+    }
+    selectedPlayers.push(name);
+    renderSelectedPlayers();
+    input.value = "";
+    suggestions.innerHTML = "";
+    updateStartButton();
+}
+
+// Spieler entfernen
+function removePlayer(name) {
+    selectedPlayers = selectedPlayers.filter(p => p !== name);
+    renderSelectedPlayers();
+    updateStartButton();
+}
+
+// Ausgewählte Spieler anzeigen
+function renderSelectedPlayers() {
+    selectedContainer.innerHTML = "";
+    selectedPlayers.forEach(name => {
+        const span = document.createElement("span");
+        span.textContent = name;
+        span.classList.add("player-tag");
+        span.onclick = () => removePlayer(name);
+        selectedContainer.appendChild(span);
+    });
+    countDisplay.textContent = selectedPlayers.length;
+}
+
+// Button aktiv / deaktiviert
+function updateStartButton() {
+    if (MAX_PLAYERS > 0 && selectedPlayers.length === MAX_PLAYERS) {
+        startBtn.disabled = false;
+        startBtn.style.opacity = 1;
+        startBtn.style.cursor = "pointer";
+    } else {
+        startBtn.disabled = true;
+        startBtn.style.opacity = 0.5;
+        startBtn.style.cursor = "not-allowed";
+    }
+}
+
+// Event: Tippen im Input
+input.addEventListener("input", showSuggestions);
+
+// Spiel starten
+startBtn.addEventListener("click", async () => {
+    if (selectedPlayers.length !== MAX_PLAYERS || MAX_PLAYERS === 0) return;
+
+    try {
+        const res = await fetch(`${API_URL}/start_kingdom_builder/`, {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${token}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(selectedPlayers)
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+            alert("Fehler: " + JSON.stringify(data.detail || data));
+            return;
+        }
+
+        alert(data.message || "Spiel gestartet! Spiel-ID: " + data.game_id);
+
+        // Match Settings im rechten Bereich anzeigen
+        matchSettingsDiv.textContent = JSON.stringify(data, null, 2);
+
+        // Tasks initialisieren
+        currentTasks = data.tasks || ["Task 1", "Task 2", "Task 3"]; // fallback, falls Server keine tasks liefert
+        renderTasks();
+        saveScoresBtn.disabled = false;
+
+    } catch (err) {
+        console.error(err);
+        alert("Fehler beim Verbinden mit dem Server");
+    }
+});
+
+// Tasks rendern
+function renderTasks() {
+    tasksContainer.innerHTML = "";
+    if (!currentTasks || currentTasks.length === 0) {
+        tasksContainer.textContent = "Keine Tasks vorhanden.";
+        return;
+    }
+
+    const table = document.createElement("table");
+    const thead = document.createElement("thead");
+    const headerRow = document.createElement("tr");
+
+    const thTask = document.createElement("th");
+    thTask.textContent = "Task";
+    headerRow.appendChild(thTask);
+
+    selectedPlayers.forEach(player => {
+        const th = document.createElement("th");
+        th.textContent = player;
+        headerRow.appendChild(th);
+    });
+
+    thead.appendChild(headerRow);
+    table.appendChild(thead);
+
+    const tbody = document.createElement("tbody");
+
+    currentTasks.forEach(task => {
+        const tr = document.createElement("tr");
+        const tdTask = document.createElement("td");
+        tdTask.textContent = task;
+        tr.appendChild(tdTask);
+
+        selectedPlayers.forEach(player => {
+            const td = document.createElement("td");
+            const input = document.createElement("input");
+            input.type = "number";
+            input.classList.add("score-input");
+            input.value = 0;
+            td.appendChild(input);
+            tr.appendChild(td);
+        });
+
+        tbody.appendChild(tr);
+    });
+
+    table.appendChild(tbody);
+    tasksContainer.appendChild(table);
+}
+
+// Punkte speichern (nur lokal)
+saveScoresBtn.addEventListener("click", () => {
+    const table = tasksContainer.querySelector("table");
+    if (!table) return;
+
+    const scores = {};
+    const rows = Array.from(table.querySelectorAll("tbody tr"));
+    rows.forEach((row, i) => {
+        const taskName = row.cells[0].textContent;
+        scores[taskName] = {};
+        selectedPlayers.forEach((player, idx) => {
+            const value = parseInt(row.cells[idx + 1].querySelector("input").value) || 0;
+            scores[taskName][player] = value;
+        });
+    });
+
+    console.log("Aktuelle Scores:", scores);
+    alert("Punkte lokal gespeichert (siehe Konsole).");
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard</title>
+</head>
+<body>
+
+<h1>My Account</h1>
+
+<!-- Account Infos -->
+<div>
+    <h2>Account data</h2>
+    <p><b>E-Mail:</b> <span id="email"></span></p>
+    <p><b>Username:</b> <span id="username"></span></p>
+</div>
+
+<hr>
+
+<!-- My games -->
+<div>
+    <h2>My games</h2>
+
+    <button onclick="addGame('kingdom_builder')">
+        add Kingdom Builder
+    </button>
+
+    <ul id="gameList"></ul>
+</div>
+
+<hr>
+
+<!-- Delete User -->
+<div>
+    <h2>Delete User</h2>
+    <button onclick="deleteUser()">Delete User</button>
+</div>
+
+<script>
+const API_URL = "http://127.0.0.1:8000";
+const token = localStorage.getItem("token");
+
+// Login-Check
+if (!token) {
+    window.location.href = "/static/index.html";
+}
+
+// selected games (local)
+let games = JSON.parse(localStorage.getItem("games")) || [];
+
+// load account
+async function loadAccount() {
+    const res = await fetch(`${API_URL}/me/`, {
+        headers: { "Authorization": `Bearer ${token}` }
+    });
+
+    if (!res.ok) {
+        localStorage.removeItem("token");
+        window.location.href = "/static/index.html";
+        return;
+    }
+
+    const data = await res.json();
+    document.getElementById("email").innerText = data.email;
+    document.getElementById("username").innerText = data.name;
+}
+
+// show games
+function renderGames() {
+    const list = document.getElementById("gameList");
+    list.innerHTML = "";
+
+    games.forEach(game => {
+        const li = document.createElement("li");
+
+        const btn = document.createElement("button");
+        btn.innerText = game === "kingdom_builder" ? "Kingdom Builder" : game;
+        btn.onclick = () => {
+            window.location.href = `/static/${game}.html`;
+        };
+
+        li.appendChild(btn);
+        list.appendChild(li);
+    });
+}
+
+// Add game
+function addGame(gameName) {
+    if (!games.includes(gameName)) {
+        games.push(gameName);
+        localStorage.setItem("games", JSON.stringify(games));
+        renderGames();
+    } else {
+        alert("game is already added");
+    }
+}
+
+// Delete User
+async function deleteUser() {
+    if (!confirm("Do you want to delete your account?")) return;
+
+    const res = await fetch(`${API_URL}/users/me`, {
+        method: "DELETE",
+        headers: { "Authorization": `Bearer ${token}` }
+    });
+
+    if (res.ok) {
+        localStorage.clear();
+        alert("Account deleted");
+        window.location.href = "/static/index.html";
+    } else {
+        alert("Deleting account failed");
+    }
+}
+
+// Initial
+loadAccount();
+renderGames();
+</script>
+
+</body>
+</html>

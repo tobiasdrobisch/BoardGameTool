@@ -205,3 +205,8 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# own testing stuff
+test_bcrypt_passlib.py
+
+erläuterungen.docx
