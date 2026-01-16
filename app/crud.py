@@ -55,11 +55,49 @@ def create_match(db: Session, match: schemas.GameCreate, current_user):
     db.refresh(db_match)
     return db_match
 
-def create_match_player(db: Session, match_id: int, player_name: str):
+def create_match_player(db: Session, match_id: int, username: str):
     db_player = models.MatchPlayer(match_id=match_id,
-                                   username=player_name
+                                   username=username
                                    )
     db.add(db_player)
     db.commit()
     db.refresh(db_player)
     return db_player
+
+# Create a MatchResult row for a player
+def create_match_result(db: Session, match_player_id: int, total_score: int = 0) -> models.MatchResult:
+    result = models.MatchResult(
+        match_player_id=match_player_id,
+        total_score=total_score
+    )
+    db.add(result)
+    db.commit()
+    db.refresh(result)
+    return result
+
+# Create a MatchResultValue row for a specific task/category
+def create_match_result_value(
+    db: Session,
+    match_result_id: int,
+    category: str,
+    value: int
+) -> models.MatchResultValue:
+    result_value = models.MatchResultValue(
+        match_result_id=match_result_id,
+        category=category,
+        value=value
+    )
+    db.add(result_value)
+    db.commit()
+    db.refresh(result_value)
+    return result_value
+
+# Get all players for a specific match
+def get_match_players_by_match_id(db: Session, match_id: int):
+    return db.query(models.MatchPlayer).filter(models.MatchPlayer.match_id == match_id).all()
+
+# Optional: get a MatchResult for a given player if it exists
+def get_match_result_by_player(db: Session, match_player_id: int):
+    return db.query(models.MatchResult).filter(models.MatchResult.match_player_id == match_player_id).first()
+
+

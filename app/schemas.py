@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Any, List
 
 from pydantic import BaseModel, EmailStr
-
+from typing import Dict
 
 class UserBase(BaseModel):
     """
@@ -74,3 +74,8 @@ class GameRead(BaseModel):
     Placeholder schema for reading game data.
     """
     pass
+
+class MatchScoresCreate(BaseModel):
+    match_id: int
+    scores: Dict[str, Dict[str, int]] # { "Task 1": { "Player1": 5, "Player2": 3 }, ... }
+

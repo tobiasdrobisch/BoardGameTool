@@ -26,12 +26,13 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from fastapi.responses import FileResponse, JSONResponse
 from datetime import timedelta
-
+from fastapi import APIRouter
 from .database import Base, engine, get_db
 from . import schemas, crud, utils
 from games import kingdom_builder
 
 app = FastAPI()
+router = APIRouter()
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
@@ -48,14 +49,14 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     try:
-        print("Token erhalten:", token)  # debug
+        print("Token received:", token)  # debug
         payload = utils.decode_access_token(token)
         user_id = payload.get("user_id")
         print("Decoded user_id:", user_id)
         if user_id is None:
             raise HTTPException(status_code=401, detail="wrong Token")
     except Exception as e:
-        print("Token Fehler:", e)
+        print("Token Error:", e)
         raise HTTPException(status_code=401, detail="wrong Token")
     user = crud.get_user_by_id(db, user_id)
     if not user:
@@ -72,26 +73,48 @@ def dashboard():
 
 @app.post("/start_kingdom_builder/")
 #def start_kingdom_builder(payload: schemas.StartGameRequest = Body(...), db: Session = Depends(get_db),current_user: schemas.UserRead = Depends(get_current_user)):
-def start_kingdom_builder(players: list[str] = Body(...), db: Session = Depends(get_db),current_user: schemas.UserRead = Depends(get_current_user)):
-
-
+def start_kingdom_builder(
+        players: list[str] = Body(...),
+        db: Session = Depends(get_db),
+        current_user: schemas.UserRead = Depends(get_current_user)
+):
+    # Generate random match configuration
     try:
         game_data = kingdom_builder.create_match()
 
-        # create game
+        # Persist match in database
         game_in = schemas.GameCreate(**game_data)
         db_game = crud.create_match(db, game_in, current_user)
 
+        # Persist players for the match
+        created_players = []
         for name in players:
-            print(f"Versuch, player {name} hinzuzufügen")
-            obj = crud.create_match_player(db=db, match_id=db_game.id, player_name=name)
-            print("Objekt erstellt:", obj)
+            crud.create_match_player(
+                db=db,
+                match_id=db_game.id,
+                username=name
+            )
+            created_players.append(name)
+            print(f"Player {name} added")
 
-        #db.commit()
+        # Attach numeric IDs to tasks for frontend usage
+        tasks_with_ids = [
+            {"id": idx, "name": task}
+            for idx, task in enumerate(game_data["tasks"])
+        ]
 
-        return {"message": "Game erstellt", "game_id": db_game.id}
+        return {
+            "match_id": db_game.id,
+            "board_game_id": game_data["board_game_id"],
+            "map": game_data["map"],
+            "island": game_data["island"],
+            "caves": game_data["caves"],
+            "capitols": game_data["capitols"],
+            "players": created_players,
+            "tasks": tasks_with_ids
+        }
     except Exception as e:
-        print("FEHLER in start_kingdom_builder:", e)
+        print("ERROR in start_kingdom_builder:", e)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -146,4 +169,42 @@ def delete_me(
     crud.delete_user(db, current_user.id)
     return {"msg": "User deleted successfully"}
 
+@app.post("/matches/scores/")
+def save_match_scores(
+    payload: schemas.MatchScoresCreate,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
 
+    """
+    Store match scores for each player and task.
+    """
+    # Get all match_player entries for this game
+    match_players = crud.get_match_players_by_match_id(db, payload.match_id)
+    if not match_players:
+        raise HTTPException(status_code=404, detail="No players found for this game")
+
+    # Map username -> DB object
+    username_to_obj = {mp.username: mp for mp in match_players}
+
+    for task_name, player_scores in payload.scores.items():
+        for username, score in player_scores.items():
+            if username not in username_to_obj:
+                continue
+
+            mp_obj = username_to_obj[username]
+
+            # Check or create MatchResult
+            result = crud.get_match_result_by_player(db, mp_obj.id)
+            if not result:
+                result = crud.create_match_result(db, mp_obj.id, total_score=0)
+
+            # Create MatchResultValue
+            crud.create_match_result_value(db, match_result_id=result.id, category=task_name, value=score)
+
+            # Update total score
+            result.total_score += score
+            db.commit()
+            db.refresh(result)
+
+    return {"status": "ok"}
