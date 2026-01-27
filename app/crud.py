@@ -1,9 +1,12 @@
 from sqlalchemy.orm import Session
 from . import models, schemas, utils
-
+from fastapi import HTTPException
 
 def create_user(db: Session, user: schemas.UserCreate):
-    hashed_pw = utils.hash_password(user.password)
+    try:
+        hashed_pw = utils.hash_password(user.password)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Password hashing failed: {e}")
     db_user = models.User(
         name=user.name,
         email=user.email,

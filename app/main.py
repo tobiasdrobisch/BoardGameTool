@@ -31,7 +31,7 @@ from fastapi import APIRouter
 from .database import Base, engine, get_db
 from . import schemas, crud, utils
 from games import kingdom_builder
-import os
+import os, logging
 
 app = FastAPI()
 router = APIRouter()
@@ -173,11 +173,21 @@ def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
 # ----------------- Registration -----------------
 @app.post("/register/", response_model=schemas.UserRead)
 def register_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
+
+
     if crud.get_user_by_email(db, user.email):
         raise HTTPException(status_code=400, detail="Email already exists")
     if crud.get_user_by_username(db, user.name):
         raise HTTPException(status_code=400, detail="Username already exists")
-    return crud.create_user(db, user)
+    try:
+        new_user = crud.create_user(db, user)
+        return {"msg": "User registered successfully", "user_id": new_user.id}
+    except Exception as e:
+        logging.error(f"Registration failed: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Registration failed: {e}"
+        )
 
 # ----------------- Login -----------------
 @app.post("/login/", response_model=schemas.Token)
