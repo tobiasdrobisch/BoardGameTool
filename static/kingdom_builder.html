@@ -382,7 +382,7 @@ saveScoresBtn.addEventListener("click", () => {
             if (!cell) return;
 
             const input = cell.querySelector("input");
-            if (!input) return;   // 🔑 WICHTIG
+            if (!input) return;   // WICHTIG!
             const value = parseInt(input.value) || 0;
             totals[player] += value;
         });

@@ -23,6 +23,7 @@
 from fastapi import FastAPI, Depends, HTTPException, status, Body
 from fastapi.security import OAuth2PasswordBearer
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from fastapi.responses import FileResponse, JSONResponse
 from datetime import timedelta
@@ -33,6 +34,20 @@ from games import kingdom_builder
 
 app = FastAPI()
 router = APIRouter()
+
+origins = [
+    "http://127.0.0.1:8000",             # local frontend
+    "https://boardgametool.onrender.com" # frontend on render
+]
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,   # allowed domains
+    allow_credentials=True,  # Cookies / Auth
+    allow_methods=["*"],     # GET, POST, PUT, DELETE ...
+    allow_headers=["*"],     # all headers
+)
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
