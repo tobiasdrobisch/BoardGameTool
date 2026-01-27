@@ -167,23 +167,15 @@ def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
 
 
 # ----------------- Registration -----------------
-@app.post("/register/", response_model=schemas.UserRead)
+@app.post("/register/", response_model=schemas.UserRead, status_code=201)
 def register_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
-
-
     if crud.get_user_by_email(db, user.email):
         raise HTTPException(status_code=400, detail="Email already exists")
     if crud.get_user_by_username(db, user.name):
         raise HTTPException(status_code=400, detail="Username already exists")
-    try:
-        new_user = crud.create_user(db, user)
-        return {"msg": "User registered successfully", "user_id": new_user.id}
-    except Exception as e:
-        logging.error(f"Registration failed: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Registration failed: {e}"
-        )
+
+    new_user = crud.create_user(db, user)
+    return new_user
 
 # ----------------- Login -----------------
 @app.post("/login/", response_model=schemas.Token)
