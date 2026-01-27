@@ -17,6 +17,9 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 hours
 MAX_PASSWORD_BYTES = 72
 
 def hash_password(password: str) -> str:
+    print("TYPE:", type(password))
+    print("REPR:", repr(password))
+    print("BYTES:", len(str(password).encode("utf-8")))
     return pwd_context.hash(password)
 
 
