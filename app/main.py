@@ -32,7 +32,7 @@ from fastapi.responses import FileResponse, JSONResponse, HTMLResponse
 from datetime import timedelta
 from fastapi import APIRouter
 from .database import Base, engine, get_db
-from . import schemas, crud, utils
+from . import schemas, crud, utils, database
 from games import kingdom_builder
 import os, logging
 
@@ -40,16 +40,17 @@ app = FastAPI()
 router = APIRouter()
 
 origins = [
-    "http://127.0.0.1:8000",             # local frontend
-    "http://localhost:8000"
+    "http://127.0.0.1:8000",
+    "http://localhost:8000",
+    "https://boardgametool.onrender.com"
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,   # allowed domains
-    allow_credentials=True,  # Cookies / Auth
-    allow_methods=["*"],     # GET, POST, PUT, DELETE ...
-    allow_headers=["*"],     # all headers
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -84,21 +85,8 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
 # dynamically change backend destination depending on localhost or rendering live on render.com
 @app.get("/", response_class=HTMLResponse)
 def root():
-    index_path = os.path.join("static", "index.html")
-
-    # open index.html
-    with open(index_path, "r", encoding="utf-8") as f:
+    with open("static/index.html", "r", encoding="utf-8") as f:
         html_content = f.read()
-
-    # set API_URL dynamically
-    # local: 127.0.0.1:8000
-    # live on Render: same origin like backend
-    host_env = os.environ.get("HOST", "")
-    api_url = "http://127.0.0.1:8000" if "127.0.0.1" in host_env else "https://boardgametool.onrender.com"
-
-    # replace placeholder in index.html
-    html_content = html_content.replace("{{API_URL}}", api_url)
-
     return HTMLResponse(content=html_content)
 
 
@@ -106,8 +94,8 @@ def root():
 def dashboard():
     return FileResponse("static/dashboard.html")
 
+
 @app.post("/start_kingdom_builder/")
-#def start_kingdom_builder(payload: schemas.StartGameRequest = Body(...), db: Session = Depends(get_db),current_user: schemas.UserRead = Depends(get_current_user)):
 def start_kingdom_builder(
         players: list[str] = Body(...),
         db: Session = Depends(get_db),
@@ -179,25 +167,31 @@ def register_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
 
 # ----------------- Login -----------------
 @app.post("/login/", response_model=schemas.Token)
-def login(
-    form_data: OAuth2PasswordRequestForm = Depends(),
-    db: Session = Depends(get_db),
-):
-    db_user = crud.get_user_by_username(db, form_data.username)
+def login(user: schemas.UserLogin, db: Session = Depends(get_db)):
+    """
+    Login endpoint (JSON) returning JWT token.
+    JSON input: {"username": "...", "password": "..."}
+    """
 
-    if not db_user or not utils.verify_password(
-        form_data.password,
-        db_user.hashed_password
-    ):
+    # get user from db
+    db_user = crud.get_user_by_username(db, user.username)
+    if not db_user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Username or password incorrect",
         )
 
-    access_token = utils.create_access_token(
-        data={"user_id": db_user.id}
-    )
+    # check password
+    if not utils.verify_password(user.password, db_user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Username or password incorrect",
+        )
 
+    # create JWT token
+    access_token = utils.create_access_token(data={"user_id": db_user.id})
+
+    # return token
     return {
         "access_token": access_token,
         "token_type": "bearer"

@@ -81,7 +81,6 @@
 </div>
 
 <script>
-const API_URL = "{{API_URL}}";
 const token = localStorage.getItem("token");
 
 if (!token) window.location.href = "/static/index.html";
@@ -104,7 +103,7 @@ const saveScoresBtn = document.getElementById("saveScoresBtn");
 
 // --- Fetch users from API ---
 async function fetchUsers() {
-    const res = await fetch(`${API_URL}/users/`, {
+    const res = await fetch(`/users/`, {
         headers: { Authorization: `Bearer ${token}` }
     });
     users = await res.json();
@@ -184,7 +183,7 @@ startBtn.addEventListener("click", async () => {
     if (selectedPlayers.length !== MAX_PLAYERS || MAX_PLAYERS === 0) return;
 
     try {
-        const res = await fetch(`${API_URL}/start_kingdom_builder/`, {
+        const res = await fetch(`/start_kingdom_builder/`, {
             method: "POST",
             headers: {
                 "Authorization": `Bearer ${token}`,
@@ -343,7 +342,7 @@ saveScoresBtn.addEventListener("click", () => {
         });
     });
 
-  fetch(`${API_URL}/matches/scores/`, {
+  fetch(`/matches/scores/`, {
     method: "POST",
     headers: {
         "Authorization": `Bearer ${token}`,
