@@ -99,7 +99,7 @@ function addGame(gameName) {
 async function deleteUser() {
     if (!confirm("Do you want to delete your account?")) return;
 
-    const res = await fetch(`${API_URL}/users/me`, {
+    const res = await fetch(`${API_URL}/users/me/`, {
         method: "DELETE",
         headers: { "Authorization": `Bearer ${token}` }
     });

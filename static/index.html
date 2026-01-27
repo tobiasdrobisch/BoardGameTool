@@ -25,105 +25,108 @@
         <button onclick="register()">Register</button>
     </div>
 
-    <script>
-        const API_URL = "{{API_URL}}";
-        let token = "";
+<script>
+    const API_URL = "{{API_URL}}";
+    let token = localStorage.getItem("token") || "";
 
-async function login() {
-    const username = document.getElementById("loginUsername").value.trim();
-    const password = document.getElementById("loginPassword").value;
+    async function login() {
+        const username = document.getElementById("loginUsername").value.trim();
+        const password = document.getElementById("loginPassword").value;
 
-    // validation
-    if (!username || !password) {
-        alert("Please enter username and password");
-        return;
-    }
-
-}
-    try {
-        const response = await fetch("${API_URL}/login/", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                username: username,
-                password: password
-            })
-        });
-
-        const data = await response.json();
-        console.log(data)
-
-        // Backend error
-        if (!response.ok) {
-            alert(data.detail || "Login failed");
+        if (!username || !password) {
+            alert("Please enter username and password");
             return;
         }
 
-        // save Token
-        localStorage.setItem("token", data.access_token);
+        try {
+            const response = await fetch(`${API_URL}/login/`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    username: username,
+                    password: password
+                })
+            });
 
-        // redirection
-        window.location.href = "/dashboard.html";
+            const data = await response.json();
 
-    } catch (error) {
-        console.error(error);
-        alert("Server not available");
-    }
-}
-
-        // Delete user function
-        async function deleteUser() {
-            if (!token) {
-                document.getElementById("deleteStatus").innerText = "Please log in first!";
+            if (!response.ok) {
+                alert(data.detail || "Login failed");
                 return;
             }
 
-            try {
-                const response = await fetch("${API_URL}/users/me", {
-                    method: "DELETE",
-                    headers: {
-                        "Authorization": "Bearer " + token
-                    }
-                });
+            localStorage.setItem("token", data.access_token);
+            token = data.access_token;
 
-                if (response.ok) {
-                    document.getElementById("deleteStatus").innerText = "User deleted successfully!";
-                } else {
-                    const result = await response.json();
-                    document.getElementById("deleteStatus").innerText = "Error: " + JSON.stringify(result);
-                }
-            } catch (error) {
-                document.getElementById("deleteStatus").innerText = "Error: " + error;
-            }
+            window.location.href = "/dashboard.html";
+
+        } catch (error) {
+            console.error(error);
+            alert("Server not available");
         }
+    }
 
     async function register() {
         const email = document.getElementById("regEmail").value;
         const username = document.getElementById("regUsername").value;
         const password = document.getElementById("regPassword").value;
 
-        const response = await fetch("http://${API_URL}/register/", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                email: email,
-                name: username,
-                password: password
-            })
-        });
+        try {
+            const response = await fetch(`${API_URL}/register/`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    email: email,
+                    name: username,
+                    password: password
+                })
+            });
 
-        const data = await response.json();
+            const data = await response.json();
 
-        if (!response.ok) {
-            alert(data.detail);
-        } else {
-            alert("registration successful!");
+            if (!response.ok) {
+                alert(data.detail || "Registration failed");
+            } else {
+                alert("Registration successful!");
+            }
+
+        } catch (error) {
+            console.error(error);
+            alert("Server not available");
         }
     }
-    </script>
+
+    async function deleteUser() {
+        if (!token) {
+            alert("Please log in first!");
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_URL}/users/me/`, {
+                method: "DELETE",
+                headers: {
+                    "Authorization": "Bearer " + token
+                }
+            });
+
+            if (response.ok) {
+                alert("User deleted successfully!");
+            } else {
+                const result = await response.json();
+                alert("Error: " + JSON.stringify(result));
+            }
+
+        } catch (error) {
+            console.error(error);
+            alert("Server not available");
+        }
+    }
+</script>
+
 </body>
 </html>

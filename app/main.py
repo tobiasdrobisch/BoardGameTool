@@ -157,7 +157,7 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     return db_user
 
 
-@app.get("/users/{user_id}", response_model=schemas.UserRead)
+@app.get("/users/{user_id}/", response_model=schemas.UserRead)
 def read_user(user_id: int, db: Session = Depends(get_db)):
     db_user = crud.get_user_by_id(db, user_id)
     if not db_user:
@@ -193,7 +193,7 @@ def login(user: schemas.UserLogin, db: Session = Depends(get_db)):
 def read_me(current_user: schemas.UserRead = Depends(get_current_user)):
     return current_user
 
-@app.delete("/users/me", response_model=dict, status_code=200, summary="Delete your account")
+@app.delete("/users/me/", response_model=dict, status_code=200, summary="Delete your account")
 def delete_me(
     current_user = Depends(get_current_user),
     db: Session = Depends(get_db)
