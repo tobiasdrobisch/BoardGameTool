@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 
 from jose import jwt
 from passlib.context import CryptContext
-from fastapi import HTTPException
+from .database import settings
 
 # Password hashing configuration
 pwd_context = CryptContext(
@@ -11,28 +11,12 @@ pwd_context = CryptContext(
 )
 
 # JWT configuration
-SECRET_KEY = "dein_geheimer_schluessel"
+SECRET_KEY = settings.SECRET_KEY
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 hours
 MAX_PASSWORD_BYTES = 72
 
 def hash_password(password: str) -> str:
-    """
-    Hash a plaintext password using bcrypt.
-    bcrypt supports max 72 bytes.
-    """
-    if not isinstance(password, str):
-        password = str(password)
-
-    # bcrypt works on BYTES, not characters
-    password_bytes = password.encode("utf-8")
-
-    if len(password_bytes) > MAX_PASSWORD_BYTES:
-        raise HTTPException(
-            status_code=400,
-            detail="Password must not exceed 72 characters"
-        )
-
     return pwd_context.hash(password)
 
 

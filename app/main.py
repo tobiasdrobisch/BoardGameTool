@@ -5,6 +5,9 @@
 # -> searching for "postgresql-x.x" → "running" / "start"
 
 # 2. start fast api server in terminal with
+#   for testing locally:
+#   -> set HOST=127.0.0.1
+# uvicorn app.main:app --reload
 #   -> uvicorn app.main:app --reload (in .venv)!
 #   close fast api server with ctrl + c
 #
@@ -21,7 +24,7 @@
 
 
 from fastapi import FastAPI, Depends, HTTPException, status, Body
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
@@ -59,12 +62,12 @@ except Exception as e:
     print(f"Failed to create table: {e}")
     raise
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login/")
 
 
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     try:
-        print("Token received:", token)  # debug
+        logging.debug("Token received:", token)  # debug
         payload = utils.decode_access_token(token)
         user_id = payload.get("user_id")
         print("Decoded user_id:", user_id)
@@ -150,13 +153,6 @@ def start_kingdom_builder(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-
-@app.post("/users/", response_model=schemas.UserRead)
-def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
-    db_user = crud.create_user(db, user)
-    return db_user
-
-
 @app.get("/users/{user_id}/", response_model=schemas.UserRead)
 def read_user(user_id: int, db: Session = Depends(get_db)):
     db_user = crud.get_user_by_id(db, user_id)
@@ -191,13 +187,29 @@ def register_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
 
 # ----------------- Login -----------------
 @app.post("/login/", response_model=schemas.Token)
-def login(user: schemas.UserLogin, db: Session = Depends(get_db)):
-    db_user = crud.get_user_by_username(db, user.username)
-    if not db_user or not utils.verify_password(user.password, db_user.hashed_password):
-        raise HTTPException(status_code=401, detail="Username or password incorrect")
-    access_token = utils.create_access_token(data={"user_id": db_user.id})
-    return {"access_token": access_token, "token_type": "bearer"}
+def login(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: Session = Depends(get_db),
+):
+    db_user = crud.get_user_by_username(db, form_data.username)
 
+    if not db_user or not utils.verify_password(
+        form_data.password,
+        db_user.hashed_password
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Username or password incorrect",
+        )
+
+    access_token = utils.create_access_token(
+        data={"user_id": db_user.id}
+    )
+
+    return {
+        "access_token": access_token,
+        "token_type": "bearer"
+    }
 
 @app.get("/me/", response_model=schemas.UserRead)
 def read_me(current_user: schemas.UserRead = Depends(get_current_user)):
