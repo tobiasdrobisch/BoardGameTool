@@ -25,21 +25,21 @@ from fastapi.security import OAuth2PasswordBearer
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, HTMLResponse
 from datetime import timedelta
 from fastapi import APIRouter
 from .database import Base, engine, get_db
 from . import schemas, crud, utils
 from games import kingdom_builder
+import os
 
 app = FastAPI()
 router = APIRouter()
 
 origins = [
     "http://127.0.0.1:8000",             # local frontend
-    "https://boardgametool.onrender.com" # frontend on render
+    "http://localhost:8000"
 ]
-
 
 app.add_middleware(
     CORSMiddleware,
@@ -78,9 +78,26 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         raise HTTPException(status_code=404, detail="User not found")
     return user
 
-@app.get("/")
+# dynamically change backend destination depending on localhost or rendering live on render.com
+@app.get("/", response_class=HTMLResponse)
 def root():
-    return FileResponse("static/index.html")
+    index_path = os.path.join("static", "index.html")
+
+    # open index.html
+    with open(index_path, "r", encoding="utf-8") as f:
+        html_content = f.read()
+
+    # set API_URL dynamically
+    # local: 127.0.0.1:8000
+    # live on Render: same origin like backend
+    host_env = os.environ.get("HOST", "")
+    api_url = "http://127.0.0.1:8000" if "127.0.0.1" in host_env else "https://boardgametool.onrender.com"
+
+    # replace placeholder in index.html
+    html_content = html_content.replace("{{API_URL}}", api_url)
+
+    return HTMLResponse(content=html_content)
+
 
 @app.get("/dashboard.html")
 def dashboard():
