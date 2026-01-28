@@ -49,22 +49,36 @@ let games = JSON.parse(localStorage.getItem("games")) || [];
 
 // load account
 async function loadAccount() {
-    const res = fetch("/me/", {
-  headers: {
-    "Authorization": "Bearer " + token
-  }
-});
+    try {
+        console.log("Fetching /me/ with token:", token); // Debug
 
-    if (!res.ok) {
-        localStorage.removeItem("token");
-        window.location.href = "/static/index.html";
-        return;
+        const res = await fetch("/me/", {
+            headers: {
+                "Authorization": "Bearer " + token
+            }
+        });
+
+        console.log("Response status:", res.status); // Debug
+
+        if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            console.error("Error response:", errData);
+            localStorage.removeItem("token");
+            window.location.href = "/static/index.html";
+            return;
+        }
+
+        const data = await res.json();
+        console.log("User data received:", data); // Debug
+
+        document.getElementById("email").innerText = data.email;
+        document.getElementById("username").innerText = data.name;
+    } catch (err) {
+        console.error("Network error /me/:", err);
+        alert("Could not load account: " + err);
     }
-
-    const data = await res.json();
-    document.getElementById("email").innerText = data.email;
-    document.getElementById("username").innerText = data.name;
 }
+
 
 // show games
 function renderGames() {
