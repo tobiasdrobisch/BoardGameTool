@@ -56,19 +56,6 @@ def capitols_queenie():
     else:
         return 'one capitol'
 
-#TODO: delete after project is finished
-def write_to_file(output_to_add):
-    import os
-    base_dir = os.path.dirname(__file__)  # BoardGameTool
-    game_file = os.path.join(base_dir, 'setting_file_since_20251123.txt')
-
-
-    with open(game_file, "r", encoding="utf-8") as f:
-        text = f.read()
-
-    with open(game_file, "w", encoding="utf-8") as f:
-        f.write(output_to_add + "\n\n")
-        f.write(text)
 
 #TODO: change to english words?
 TASKS = ["Fischer", "Bergleute", "Händler", "Arbeiter", "Entdecker", "Ritter", "Einsiedler", "Bürger", "Bauern", "Familien", "Hirten", "Botschafter", "Geologen", "Boten", "Adel", "Vasallen", "Hauptmänner", "Späher", "Waldläufer", "Abenteurer", "Wirt", "Landbesitzer", "Bürgermeister", "Vagabund"]
@@ -135,7 +122,6 @@ def create_match():
     output += str(map) + "\n"
     output += str(tasks) + "\n"
 
-    write_to_file(output)
     print(output)
 
     return {
