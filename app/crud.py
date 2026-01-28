@@ -1,9 +1,9 @@
 from sqlalchemy.orm import Session
 from . import models, schemas, utils
 
-
 def create_user(db: Session, user: schemas.UserCreate):
     hashed_pw = utils.hash_password(user.password)
+
     db_user = models.User(
         name=user.name,
         email=user.email,

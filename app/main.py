@@ -5,6 +5,9 @@
 # -> searching for "postgresql-x.x" → "running" / "start"
 
 # 2. start fast api server in terminal with
+#   for testing locally:
+#   -> set HOST=127.0.0.1
+# uvicorn app.main:app --reload
 #   -> uvicorn app.main:app --reload (in .venv)!
 #   close fast api server with ctrl + c
 #
@@ -20,19 +23,52 @@
 # Create Databases
 
 
-from fastapi import FastAPI, Depends, HTTPException, status, Body
+from fastapi import FastAPI, Depends, HTTPException, status, Body, APIRouter
 from fastapi.security import OAuth2PasswordBearer
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from datetime import timedelta
-from fastapi import APIRouter
-from .database import Base, engine, get_db
+from .database import Base, engine, get_db, SessionLocal
 from . import schemas, crud, utils
 from games import kingdom_builder
+import logging
+from .seed import seed_board_games
+from contextlib import asynccontextmanager
 
-app = FastAPI()
+# --- lifespan definition ---
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    print("Application startup")
+
+    db = SessionLocal()
+    try:
+        seed_board_games(db)
+    finally:
+        db.close()
+
+    yield
+
+    print("Application shutdown")
+
+# --- app creation ---
+app = FastAPI(lifespan=lifespan)
 router = APIRouter()
+
+origins = [
+    "http://127.0.0.1:8000",
+    "http://localhost:8000",
+    "https://boardgametool.onrender.com"
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
@@ -44,12 +80,12 @@ except Exception as e:
     print(f"Failed to create table: {e}")
     raise
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login/")
 
 
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     try:
-        print("Token received:", token)  # debug
+        logging.debug("Token received:", token)  # debug
         payload = utils.decode_access_token(token)
         user_id = payload.get("user_id")
         print("Decoded user_id:", user_id)
@@ -63,16 +99,28 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         raise HTTPException(status_code=404, detail="User not found")
     return user
 
-@app.get("/")
+@app.on_event("startup")
+def startup_event():
+    db = SessionLocal()
+    try:
+        seed_board_games(db)
+    finally:
+        db.close()
+
+# dynamically change backend destination depending on localhost or rendering live on render.com
+@app.get("/", response_class=HTMLResponse)
 def root():
-    return FileResponse("static/index.html")
+    with open("static/index.html", "r", encoding="utf-8") as f:
+        html_content = f.read()
+    return HTMLResponse(content=html_content)
+
 
 @app.get("/dashboard.html")
 def dashboard():
     return FileResponse("static/dashboard.html")
 
+
 @app.post("/start_kingdom_builder/")
-#def start_kingdom_builder(payload: schemas.StartGameRequest = Body(...), db: Session = Depends(get_db),current_user: schemas.UserRead = Depends(get_current_user)):
 def start_kingdom_builder(
         players: list[str] = Body(...),
         db: Session = Depends(get_db),
@@ -118,14 +166,7 @@ def start_kingdom_builder(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-
-@app.post("/users/", response_model=schemas.UserRead)
-def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
-    db_user = crud.create_user(db, user)
-    return db_user
-
-
-@app.get("/users/{user_id}", response_model=schemas.UserRead)
+@app.get("/users/{user_id}/", response_model=schemas.UserRead)
 def read_user(user_id: int, db: Session = Depends(get_db)):
     db_user = crud.get_user_by_id(db, user_id)
     if not db_user:
@@ -139,29 +180,53 @@ def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
 
 
 # ----------------- Registration -----------------
-@app.post("/register/", response_model=schemas.UserRead)
+@app.post("/register/", response_model=schemas.UserRead, status_code=201)
 def register_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     if crud.get_user_by_email(db, user.email):
         raise HTTPException(status_code=400, detail="Email already exists")
     if crud.get_user_by_username(db, user.name):
         raise HTTPException(status_code=400, detail="Username already exists")
-    return crud.create_user(db, user)
+
+    new_user = crud.create_user(db, user)
+    return new_user
 
 # ----------------- Login -----------------
 @app.post("/login/", response_model=schemas.Token)
 def login(user: schemas.UserLogin, db: Session = Depends(get_db)):
-    db_user = crud.get_user_by_username(db, user.username)
-    if not db_user or not utils.verify_password(user.password, db_user.hashed_password):
-        raise HTTPException(status_code=401, detail="Username or password incorrect")
-    access_token = utils.create_access_token(data={"user_id": db_user.id})
-    return {"access_token": access_token, "token_type": "bearer"}
+    """
+    Login endpoint (JSON) returning JWT token.
+    JSON input: {"username": "...", "password": "..."}
+    """
 
+    # get user from db
+    db_user = crud.get_user_by_username(db, user.username)
+    if not db_user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Username or password incorrect",
+        )
+
+    # check password
+    if not utils.verify_password(user.password, db_user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Username or password incorrect",
+        )
+
+    # create JWT token
+    access_token = utils.create_access_token(data={"user_id": db_user.id})
+
+    # return token
+    return {
+        "access_token": access_token,
+        "token_type": "bearer"
+    }
 
 @app.get("/me/", response_model=schemas.UserRead)
 def read_me(current_user: schemas.UserRead = Depends(get_current_user)):
     return current_user
 
-@app.delete("/users/me", response_model=dict, status_code=200, summary="Delete your account")
+@app.delete("/users/me/", response_model=dict, status_code=200, summary="Delete your account")
 def delete_me(
     current_user = Depends(get_current_user),
     db: Session = Depends(get_db)

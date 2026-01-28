@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 
 from jose import jwt
 from passlib.context import CryptContext
+from .database import settings
 
 # Password hashing configuration
 pwd_context = CryptContext(
@@ -10,17 +11,12 @@ pwd_context = CryptContext(
 )
 
 # JWT configuration
-SECRET_KEY = "dein_geheimer_schluessel"
+SECRET_KEY = settings.SECRET_KEY
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 hours
-
+MAX_PASSWORD_BYTES = 72
 
 def hash_password(password: str) -> str:
-    """
-    Hash a plaintext password using bcrypt.
-    """
-    if not isinstance(password, str):
-        password = str(password)
     return pwd_context.hash(password)
 
 
