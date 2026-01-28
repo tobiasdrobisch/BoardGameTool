@@ -1,4 +1,168 @@
 01/28/26
+caves
+one capitol
+[[20, 'H', 'Palisade', 'reversed'], [1, 'KB', 'Orakel', 'reversed'], [15, 'C', 'Wagen', 'reversed'], [13, 'C', 'Leuchtturm', 'upright']]
+['Familien', 'Händler', 'Bürgermeister', 'Festung', 'Straße']
+
+
+01/28/26
+caves
+both capitols
+[[10, 'N', 'Stadt', 'upright'], [21, 'M', 'Schloss', 'upright'], [13, 'C', 'Leuchtturm', 'upright'], [24, 'M', 'Kanu', 'upright']]
+['Ritter', 'Vasallen', 'Familien', 'Straße']
+
+
+01/28/26
+caves
+[[7, 'KB', 'Grasland', 'reversed'], [5, 'KB', 'Bauernhof', 'reversed'], [4, 'KB', 'Pferde', 'reversed'], [1, 'KB', 'Orakel', 'reversed']]
+['Hauptmänner', 'Bürgermeister', 'Waldläufer']
+
+
+01/28/26
+Wood
+caves
+both capitols
+[[8, 'KB', '3zu4', 'upright'], [4, 'KB', 'Pferde', 'reversed'], [19, 'H', 'Wassermühle', 'upright'], [22, 'M', 'Tempel', 'upright']]
+['Bergleute', 'Boten', 'Händler']
+
+
+01/28/26
+Wood
+caves
+[[2, 'KB', 'Schiff', 'upright'], [9, 'N', 'Mauern', 'upright'], [23, 'M', 'Brunnen', 'reversed'], [22, 'M', 'Tempel', 'upright']]
+['Fischer', 'Hirten', 'Händler']
+
+
+01/28/26
+caves
+[[14, 'C', 'Kapitol', 'upright'], [22, 'M', 'Tempel', 'reversed'], [9, 'N', 'Mauern', 'reversed'], [21, 'M', 'Schloss', 'upright']]
+['Arbeiter', 'Vagabund', 'Bürger', 'Himmelsrichtungen']
+
+
+01/28/26
+Wood
+caves
+both capitols
+[[2, 'KB', 'Schiff', 'reversed'], [23, 'M', 'Brunnen', 'upright'], [24, 'M', 'Kanu', 'reversed'], [20, 'H', 'Palisade', 'upright']]
+['Abenteurer', 'Bauern', 'Boten']
+
+
+01/28/26
+Canyon
+both capitols
+[[15, 'C', 'Wagen', 'upright'], [13, 'C', 'Leuchtturm', 'reversed'], [5, 'KB', 'Bauernhof', 'reversed'], [4, 'KB', 'Pferde', 'reversed']]
+['Familien', 'Boten', 'Späher', 'Vormarsch', 'Straße']
+
+
+01/28/26
+[[16, 'C', 'Kreuzung', 'upright'], [24, 'M', 'Kanu', 'upright'], [3, 'KB', 'Oase', 'reversed'], [21, 'M', 'Schloss', 'upright']]
+['Ritter', 'Bürger', 'Hirten', 'Zufluchtsort']
+
+
+01/28/26
+Canyon
+[[23, 'M', 'Brunnen', 'upright'], [13, 'C', 'Leuchtturm', 'upright'], [22, 'M', 'Tempel', 'upright'], [8, 'KB', '3zu4', 'upright']]
+['Vasallen', 'Hirten', 'Abenteurer', 'Himmelsrichtungen']
+
+
+01/28/26
+[[4, 'KB', 'Pferde', 'reversed'], [5, 'KB', 'Bauernhof', 'reversed'], [1, 'KB', 'Orakel', 'upright'], [13, 'C', 'Leuchtturm', 'reversed']]
+['Bürger', 'Hirten', 'Fischer', 'Heimatland']
+
+
+01/28/26
+Canyon
+caves
+[[11, 'N', 'Gärten', 'upright'], [9, 'N', 'Mauern', 'reversed'], [23, 'M', 'Brunnen', 'reversed'], [8, 'KB', '3zu4', 'reversed']]
+['Wirt', 'Waldläufer', 'Landbesitzer']
+
+
+01/28/26
+[[21, 'M', 'Schloss', 'reversed'], [8, 'KB', '3zu4', 'reversed'], [5, 'KB', 'Bauernhof', 'reversed'], [17, 'H', 'Funkturm', 'reversed']]
+['Boten', 'Familien', 'Geologen']
+
+
+01/28/26
+Wood
+caves
+one capitol
+[[15, 'C', 'Wagen', 'reversed'], [2, 'KB', 'Schiff', 'upright'], [9, 'N', 'Mauern', 'reversed'], [7, 'KB', 'Grasland', 'upright']]
+['Geologen', 'Bauern', 'Einsiedler', 'Straße']
+
+
+01/28/26
+Canyon
+caves
+[[12, 'N', 'Kamele', 'reversed'], [13, 'C', 'Leuchtturm', 'upright'], [20, 'H', 'Palisade', 'upright'], [4, 'KB', 'Pferde', 'reversed']]
+['Bauern', 'Händler', 'Bürger', 'Straße']
+
+
+01/28/26
+caves
+both capitols
+[[8, 'KB', '3zu4', 'reversed'], [2, 'KB', 'Schiff', 'reversed'], [4, 'KB', 'Pferde', 'reversed'], [6, 'KB', 'Türme', 'upright']]
+['Arbeiter', 'Hauptmänner', 'Hirten']
+
+
+01/28/26
+Wood
+caves
+one capitol
+[[4, 'KB', 'Pferde', 'upright'], [24, 'M', 'Kanu', 'upright'], [5, 'KB', 'Bauernhof', 'reversed'], [14, 'C', 'Kapitol', 'reversed']]
+['Bürger', 'Arbeiter', 'Boten', 'Vormarsch']
+
+
+01/28/26
+Wood
+caves
+both capitols
+[[3, 'KB', 'Oase', 'upright'], [10, 'N', 'Stadt', 'upright'], [16, 'C', 'Kreuzung', 'upright'], [22, 'M', 'Tempel', 'reversed']]
+['Landbesitzer', 'Bergleute', 'Händler', 'Heimatland']
+
+
+01/28/26
+Canyon
+caves
+both capitols
+[[19, 'H', 'Wassermühle', 'reversed'], [7, 'KB', 'Grasland', 'reversed'], [1, 'KB', 'Orakel', 'reversed'], [8, 'KB', '3zu4', 'upright']]
+['Arbeiter', 'Händler', 'Familien']
+
+
+01/28/26
+Wood
+one capitol
+[[16, 'C', 'Kreuzung', 'upright'], [12, 'N', 'Kamele', 'reversed'], [3, 'KB', 'Oase', 'upright'], [14, 'C', 'Kapitol', 'upright']]
+['Waldläufer', 'Boten', 'Hirten', 'Zufluchtsort', 'Vormarsch']
+
+
+01/28/26
+Wood
+[[18, 'H', 'Späher', 'reversed'], [6, 'KB', 'Türme', 'reversed'], [8, 'KB', '3zu4', 'reversed'], [12, 'N', 'Kamele', 'upright']]
+['Vagabund', 'Späher', 'Entdecker']
+
+
+01/28/26
+Canyon
+one capitol
+[[8, 'KB', '3zu4', 'upright'], [19, 'H', 'Wassermühle', 'upright'], [10, 'N', 'Stadt', 'upright'], [23, 'M', 'Brunnen', 'upright']]
+['Hauptmänner', 'Botschafter', 'Waldläufer']
+
+
+01/28/26
+both capitols
+[[14, 'C', 'Kapitol', 'reversed'], [12, 'N', 'Kamele', 'upright'], [24, 'M', 'Kanu', 'reversed'], [15, 'C', 'Wagen', 'upright']]
+['Entdecker', 'Waldläufer', 'Hauptmänner', 'Heimatland', 'Himmelsrichtungen']
+
+
+01/28/26
+Wood
+caves
+both capitols
+[[9, 'N', 'Mauern', 'reversed'], [24, 'M', 'Kanu', 'upright'], [14, 'C', 'Kapitol', 'reversed'], [10, 'N', 'Stadt', 'reversed']]
+['Waldläufer', 'Späher', 'Bergleute', 'Heimatland']
+
+
+01/28/26
 Canyon
 caves
 [[20, 'H', 'Palisade', 'reversed'], [21, 'M', 'Schloss', 'reversed'], [9, 'N', 'Mauern', 'upright'], [3, 'KB', 'Oase', 'reversed']]

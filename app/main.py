@@ -23,20 +23,37 @@
 # Create Databases
 
 
-from fastapi import FastAPI, Depends, HTTPException, status, Body
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi import FastAPI, Depends, HTTPException, status, Body, APIRouter
+from fastapi.security import OAuth2PasswordBearer
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from fastapi.responses import FileResponse, JSONResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from datetime import timedelta
-from fastapi import APIRouter
-from .database import Base, engine, get_db
-from . import schemas, crud, utils, database
+from .database import Base, engine, get_db, SessionLocal
+from . import schemas, crud, utils
 from games import kingdom_builder
-import os, logging
+import logging
+from .seed import seed_board_games
+from contextlib import asynccontextmanager
 
-app = FastAPI()
+# --- lifespan definition ---
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    print("Application startup")
+
+    db = SessionLocal()
+    try:
+        seed_board_games(db)
+    finally:
+        db.close()
+
+    yield
+
+    print("Application shutdown")
+
+# --- app creation ---
+app = FastAPI(lifespan=lifespan)
 router = APIRouter()
 
 origins = [
@@ -81,6 +98,14 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return user
+
+@app.on_event("startup")
+def startup_event():
+    db = SessionLocal()
+    try:
+        seed_board_games(db)
+    finally:
+        db.close()
 
 # dynamically change backend destination depending on localhost or rendering live on render.com
 @app.get("/", response_class=HTMLResponse)
