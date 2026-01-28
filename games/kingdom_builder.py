@@ -63,10 +63,10 @@ def write_to_file(output_to_add):
     game_file = os.path.join(base_dir, 'setting_file_since_20251123.txt')
 
     print("###########################")
-    with open(game_file, "r") as f:
+    with open(game_file, "r", encoding="utf-8") as f:
         text = f.read()
 
-    with open(game_file, "w") as f:
+    with open(game_file, "w", encoding="utf-8") as f:
         f.write(output_to_add + "\n\n")
         f.write(text)
 
