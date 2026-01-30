@@ -1,28 +1,3 @@
-#   Get started
-
-# 1. postgresql server running
-# -> on windows + r: services.msc
-# -> searching for "postgresql-x.x" → "running" / "start"
-
-# 2. start fast api server in terminal with
-#   for testing locally:
-#   -> set HOST=127.0.0.1
-# uvicorn app.main:app --reload
-#   -> uvicorn app.main:app --reload (in .venv)!
-#   close fast api server with ctrl + c
-#
-# server on http://127.0.0.1:8000
-# doc on http://127.0.0.1:8000/docs for post/get tryout etc.
-#
-# POST /register/ → JSON: { "name": "...", "email": "...", "password": "..." }
-# POST /login/ → JSON: { "email": "...", "password": "..." } → receive token
-# GET /me/ → Header Authorization: Bearer <token> → user-data
-
-# Fast Api
-# Routing
-# Create Databases
-
-
 from fastapi import FastAPI, Depends, HTTPException, status, Body, APIRouter
 from fastapi.security import OAuth2PasswordBearer
 from fastapi.staticfiles import StaticFiles
@@ -31,25 +6,22 @@ from sqlalchemy.orm import Session
 from fastapi.responses import FileResponse, HTMLResponse
 from datetime import timedelta
 from .database import Base, engine, get_db, SessionLocal
-from . import schemas, crud, utils
+from . import schemas, crud, utils, models
 from games import kingdom_builder
 import logging
 from .seed import seed_board_games
 from contextlib import asynccontextmanager
 
-# --- lifespan definition ---
+# --- lifespan ---
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("Application startup")
-
     db = SessionLocal()
     try:
         seed_board_games(db)
     finally:
         db.close()
-
     yield
-
     print("Application shutdown")
 
 # --- app creation ---
@@ -72,53 +44,41 @@ app.add_middleware(
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# Create tables if not existing
+# Create tables
 try:
     Base.metadata.create_all(bind=engine)
-    print("Table created successfully.")
+    print("Tables created successfully.")
 except Exception as e:
-    print(f"Failed to create table: {e}")
+    print(f"Failed to create tables: {e}")
     raise
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login/")
 
-
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     try:
-        logging.debug("Token received:", token)  # debug
+        logging.debug("Token received: %s", token)
         payload = utils.decode_access_token(token)
         user_id = payload.get("user_id")
         print("Decoded user_id:", user_id)
         if user_id is None:
-            raise HTTPException(status_code=401, detail="wrong Token")
+            raise HTTPException(status_code=401, detail="Invalid token")
     except Exception as e:
         print("Token Error:", e)
-        raise HTTPException(status_code=401, detail="wrong Token")
+        raise HTTPException(status_code=401, detail="Invalid token")
     user = crud.get_user_by_id(db, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return user
 
-@app.on_event("startup")
-def startup_event():
-    db = SessionLocal()
-    try:
-        seed_board_games(db)
-    finally:
-        db.close()
-
-# dynamically change backend destination depending on localhost or rendering live on render.com
 @app.get("/", response_class=HTMLResponse)
 def root():
     with open("static/index.html", "r", encoding="utf-8") as f:
         html_content = f.read()
     return HTMLResponse(content=html_content)
 
-
 @app.get("/dashboard.html")
 def dashboard():
     return FileResponse("static/dashboard.html")
-
 
 @app.post("/start_kingdom_builder/")
 def start_kingdom_builder(
@@ -126,7 +86,6 @@ def start_kingdom_builder(
         db: Session = Depends(get_db),
         current_user: schemas.UserRead = Depends(get_current_user)
 ):
-    # Generate random match configuration
     try:
         game_data = kingdom_builder.create_match()
 
@@ -137,19 +96,11 @@ def start_kingdom_builder(
         # Persist players for the match
         created_players = []
         for name in players:
-            crud.create_match_player(
-                db=db,
-                match_id=db_game.id,
-                username=name
-            )
+            crud.create_match_player(db=db, match_id=db_game.id, username=name)
             created_players.append(name)
-            print(f"Player {name} added")
 
-        # Attach numeric IDs to tasks for frontend usage
-        tasks_with_ids = [
-            {"id": idx, "name": task}
-            for idx, task in enumerate(game_data["tasks"])
-        ]
+        # Attach numeric IDs to tasks for frontend
+        tasks_with_ids = [{"id": idx, "name": task} for idx, task in enumerate(game_data["tasks"])]
 
         return {
             "match_id": db_game.id,
@@ -162,9 +113,8 @@ def start_kingdom_builder(
             "tasks": tasks_with_ids
         }
     except Exception as e:
-        print("ERROR in start_kingdom_builder:", e)
+        print("Error in start_kingdom_builder:", e)
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @app.get("/users/{user_id}/", response_model=schemas.UserRead)
 def read_user(user_id: int, db: Session = Depends(get_db)):
@@ -173,103 +123,105 @@ def read_user(user_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="User not found")
     return db_user
 
-
 @app.get("/users/", response_model=list[schemas.UserRead])
 def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     return crud.get_users(db, skip=skip, limit=limit)
 
-
-# ----------------- Registration -----------------
 @app.post("/register/", response_model=schemas.UserRead, status_code=201)
 def register_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     if crud.get_user_by_email(db, user.email):
         raise HTTPException(status_code=400, detail="Email already exists")
     if crud.get_user_by_username(db, user.name):
         raise HTTPException(status_code=400, detail="Username already exists")
+    return crud.create_user(db, user)
 
-    new_user = crud.create_user(db, user)
-    return new_user
-
-# ----------------- Login -----------------
 @app.post("/login/", response_model=schemas.Token)
 def login(user: schemas.UserLogin, db: Session = Depends(get_db)):
-    """
-    Login endpoint (JSON) returning JWT token.
-    JSON input: {"username": "...", "password": "..."}
-    """
-
-    # get user from db
     db_user = crud.get_user_by_username(db, user.username)
-    if not db_user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Username or password incorrect",
-        )
-
-    # check password
-    if not utils.verify_password(user.password, db_user.hashed_password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Username or password incorrect",
-        )
-
-    # create JWT token
+    if not db_user or not utils.verify_password(user.password, db_user.hashed_password):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Username or password incorrect")
     access_token = utils.create_access_token(data={"user_id": db_user.id})
-
-    # return token
-    return {
-        "access_token": access_token,
-        "token_type": "bearer"
-    }
+    return {"access_token": access_token, "token_type": "bearer"}
 
 @app.get("/me/", response_model=schemas.UserRead)
 def read_me(current_user: schemas.UserRead = Depends(get_current_user)):
     return current_user
 
-@app.delete("/users/me/", response_model=dict, status_code=200, summary="Delete your account")
-def delete_me(
-    current_user = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
+@app.delete("/users/me/", response_model=dict, status_code=200)
+def delete_me(current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     crud.delete_user(db, current_user.id)
     return {"msg": "User deleted successfully"}
 
 @app.post("/matches/scores/")
-def save_match_scores(
-    payload: schemas.MatchScoresCreate,
-    db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
-):
-
-    """
-    Store match scores for each player and task.
-    """
-    # Get all match_player entries for this game
+def save_match_scores(payload: schemas.MatchScoresCreate, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
     match_players = crud.get_match_players_by_match_id(db, payload.match_id)
     if not match_players:
         raise HTTPException(status_code=404, detail="No players found for this game")
 
-    # Map username -> DB object
     username_to_obj = {mp.username: mp for mp in match_players}
 
     for task_name, player_scores in payload.scores.items():
         for username, score in player_scores.items():
             if username not in username_to_obj:
                 continue
-
             mp_obj = username_to_obj[username]
-
-            # Check or create MatchResult
             result = crud.get_match_result_by_player(db, mp_obj.id)
             if not result:
                 result = crud.create_match_result(db, mp_obj.id, total_score=0)
-
-            # Create MatchResultValue
             crud.create_match_result_value(db, match_result_id=result.id, category=task_name, value=score)
-
-            # Update total score
             result.total_score += score
             db.commit()
             db.refresh(result)
-
     return {"status": "ok"}
+
+@app.get("/matches/my")
+def get_my_matches(db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    matches = db.query(models.Match).filter(models.Match.created_by == current_user.id).all()
+    result = []
+    for m in matches:
+        players = db.query(models.MatchPlayer).filter(models.MatchPlayer.match_id == m.id).all()
+        player_names = [p.username for p in players]
+        scores = {}
+        for p in players:
+            match_result = db.query(models.MatchResult).filter(models.MatchResult.match_player_id == p.id).first()
+            scores[p.username] = match_result.total_score if match_result else 0
+        result.append({
+            "match_id": m.id,
+            "date": m.created_at.strftime("%Y-%m-%d"),
+            "players": player_names,
+            "player_count": len(player_names),
+            "scores": scores,
+        })
+    return result
+
+@app.get("/matches/{match_id}")
+def get_match_detail(match_id: int, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    match = db.query(models.Match).filter(models.Match.id == match_id).first()
+    if not match:
+        raise HTTPException(status_code=404, detail="Match not found")
+
+    match_players = db.query(models.MatchPlayer).filter(models.MatchPlayer.match_id == match_id).all()
+    if not match_players:
+        raise HTTPException(status_code=404, detail="No players found for this match")
+
+    match_data = {
+        "map": match.map,  # Adjust field name according to your model
+        "island": match.island,
+        "caves": match.caves,
+        "capitols": match.capitols,
+        "tasks": match.tasks,
+        "players": {}
+    }
+
+    for mp in match_players:
+        match_result = db.query(models.MatchResult).filter(models.MatchResult.match_player_id == mp.id).first()
+        player_details = {}
+        total_score = 0
+        if match_result:
+            values = db.query(models.MatchResultValue).filter(models.MatchResultValue.match_result_id == match_result.id).all()
+            for v in values:
+                player_details[v.category] = v.value
+            total_score = match_result.total_score
+        match_data["players"][mp.username] = {"total": total_score, "details": player_details}
+
+    return match_data
