@@ -2,400 +2,513 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>Kingdom Builder - Create Match</title>
+<title>Kingdom Builder Tool</title>
+
 <style>
-  body {
-    display: flex;
-    font-family: Arial, sans-serif;
-    gap: 20px;
-    padding: 20px;
-  }
+/* ===== GENERAL ===== */
+body {
+  font-family: Arial, sans-serif;
+  padding: 20px;
+  background:#f5f5f5;
+}
 
-  .left-panel { flex: 1; max-width: 400px; }
-  .right-panel { flex: 2; border: 1px solid #ccc; padding: 10px; min-height: 300px; }
+h1,h3 { margin-top:0 }
 
-  #playerInputContainer { position: relative; width: 100%; margin-top: 10px; }
-  #playerInput { width: 100%; padding: 5px; }
+/* ===== LAYOUT ===== */
+.main-layout {
+  display:flex;
+  gap:20px;
+}
 
-  #suggestions { border: 1px solid #ccc; max-height: 150px; overflow-y: auto; position: absolute; background: white; width: 100%; z-index: 10; }
-  .suggestion-item { padding: 5px; cursor: pointer; }
-  .suggestion-item:hover { background-color: #eee; }
+.left-panel {
+  flex:1;
+  max-width:420px;
+  background:white;
+  padding:15px;
+  border-radius:10px;
+  box-shadow:0 2px 5px rgba(0,0,0,0.1);
+}
 
-  #selectedPlayers { margin-top: 10px; }
-  .player-tag { display: inline-block; padding: 5px 10px; background-color: #007bff; color: white; border-radius: 15px; margin: 3px; cursor: pointer; }
-  .player-tag:hover { background-color: #0056b3; }
+.right-panel {
+  flex:2;
+  background:white;
+  padding:15px;
+  border-radius:10px;
+  box-shadow:0 2px 5px rgba(0,0,0,0.1);
+}
 
-  button { margin-top: 10px; padding: 8px 12px; opacity: 0.5; cursor: not-allowed; }
-  button.enabled { opacity: 1; cursor: pointer; }
+/* ===== PLAYER SELECT ===== */
+#playerInputContainer { position:relative; margin-top:10px; }
+#playerInput { width:100%; padding:6px; }
 
-  table { border-collapse: collapse; width: 100%; margin-top: 10px; }
-  table, th, td { border: 1px solid #ccc; }
-  th, td { padding: 5px; text-align: center; }
+#suggestions {
+  border:1px solid #ccc;
+  max-height:150px;
+  overflow-y:auto;
+  position:absolute;
+  background:white;
+  width:100%;
+  z-index:10;
+}
 
-  /* Remove number input arrows */
-  input[type=number]::-webkit-outer-spin-button,
-  input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-  input[type=number] { -moz-appearance: textfield; }
+.suggestion-item {
+  padding:5px;
+  cursor:pointer;
+}
+.suggestion-item:hover { background:#eee; }
 
-  input.score-input { width: 50px; text-align: center; }
+.player-tag {
+  display:inline-block;
+  padding:5px 10px;
+  background:#007bff;
+  color:white;
+  border-radius:15px;
+  margin:3px;
+  cursor:pointer;
+}
+.player-tag:hover { background:#0056b3; }
 
-  .map-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 10px; }
-  .map-tile { border: 1px solid #444; padding: 10px; text-align: center; background: #f9f9f9; }
-  .map-title { font-weight: bold; margin-bottom: 5px; }
-  .map-meta { font-size: 0.9em; color: #555; }
+/* ===== BUTTONS ===== */
+button {
+  margin-top:10px;
+  padding:8px 12px;
+  border:none;
+  border-radius:5px;
+  background:#007bff;
+  color:white;
+  cursor:pointer;
+  opacity:.5;
+}
+
+button.enabled {
+  opacity:1;
+}
+
+button:hover { background:#0056b3; }
+
+/* ===== TABLE ===== */
+table {
+  border-collapse:collapse;
+  width:100%;
+  margin-top:10px;
+  background:white;
+}
+
+table, th, td {
+  border:1px solid #ccc;
+}
+
+th, td {
+  padding:6px;
+  text-align:center;
+}
+
+/* number arrows remove */
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+  -webkit-appearance:none;
+}
+
+input.score-input {
+  width:60px;
+  text-align:center;
+}
+
+/* ===== MAP GRID ===== */
+.map-grid {
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:10px;
+  margin-top:10px;
+}
+
+.map-tile {
+  border:1px solid #444;
+  padding:10px;
+  background:#fafafa;
+  border-radius:6px;
+}
+
+.map-title {
+  font-weight:bold;
+}
+
+.map-meta {
+  font-size:.9em;
+  color:#555;
+}
+
+/* ===== MODAL ===== */
+#matchDetailModal {
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.6);
+  padding:40px;
+  z-index:9999;
+}
+
+#matchDetailBox {
+  background:white;
+  padding:20px;
+  max-width:900px;
+  margin:auto;
+  border-radius:10px;
+}
 </style>
 </head>
+
 <body>
 
-<div class="left-panel">
-  <h1>Kingdom Builder</h1>
-
-  <label>Spieleranzahl:</label>
-  <select id="playerCount">
-    <option value="">Bitte auswählen</option>
-    <option value="2">2 Spieler</option>
-    <option value="3">3 Spieler</option>
-    <option value="4">4 Spieler</option>
-    <option value="5">5 Spieler</option>
-  </select>
-
-  <h3>Spieler auswählen</h3>
-  <div id="playerInputContainer">
-    <input type="text" id="playerInput" placeholder="Spielername eingeben..." disabled>
-    <div id="suggestions"></div>
+<!-- MATCH DETAIL MODAL -->
+<div id="matchDetailModal">
+  <div id="matchDetailBox">
+    <button onclick="closeMatchDetails()">Close</button>
+    <div id="matchDetailContent"></div>
   </div>
-
-  <div id="selectedPlayers"></div>
-  <p>Ausgewählte Spieler: <span id="playerCountDisplay">0</span></p>
-
-  <button id="startGameBtn" disabled>Spiel starten</button>
 </div>
 
+<div class="main-layout">
+
+<!-- LEFT PANEL -->
+<div class="left-panel">
+<h1>Kingdom Builder</h1>
+
+<label>Spieleranzahl:</label>
+<select id="playerCount">
+  <option value="">Bitte auswählen</option>
+  <option value="2">2 Spieler</option>
+  <option value="3">3 Spieler</option>
+  <option value="4">4 Spieler</option>
+  <option value="5">5 Spieler</option>
+</select>
+
+<h3>Spieler auswählen</h3>
+<div id="playerInputContainer">
+  <input id="playerInput" placeholder="Spielername..." disabled>
+  <div id="suggestions"></div>
+</div>
+
+<div id="selectedPlayers"></div>
+<p>Ausgewählte Spieler: <b id="playerCountDisplay">0</b></p>
+
+<button id="startGameBtn" disabled>Spiel starten</button>
+</div>
+
+<!-- RIGHT PANEL -->
 <div class="right-panel">
-  <h3>Match Einstellungen</h3>
-  <div id="matchSettings">Noch kein Spiel erstellt.</div>
+<h3>Match Einstellungen</h3>
+<div id="matchSettings">Noch kein Spiel erstellt.</div>
 
-  <h3>Aufgaben & Punkte</h3>
-  <div id="tasksContainer"></div>
-  <button id="saveScoresBtn" disabled>Punkte speichern</button>
+<h3>Aufgaben & Punkte</h3>
+<div id="tasksContainer"></div>
+<button id="saveScoresBtn" disabled>Punkte speichern</button>
 </div>
+
+</div>
+
+<hr>
+
+<!-- MATCH HISTORY -->
+<h3>Gespielte Partien</h3>
+
+<div id="matchFilters">
+Spieleranzahl:
+<select id="filterPlayerCount">
+  <option value="">Alle</option>
+  <option value="2">2</option>
+  <option value="3">3</option>
+  <option value="4">4</option>
+  <option value="5">5</option>
+</select>
+
+Mitspieler:
+<input id="filterPlayerName" placeholder="Name eingeben...">
+</div>
+
+<div id="matchHistory"></div>
 
 <script>
+/* ================= AUTH ================= */
 const token = localStorage.getItem("token");
+if (!token) window.location.href="/static/index.html";
 
-if (!token) window.location.href = "/static/index.html";
+/* ================= GLOBALS ================= */
+let users=[], selectedPlayers=[], currentTasks=[], currentMatch=null, MAX_PLAYERS=0, allMatches=[];
 
-// --- Global variables ---
-let users = [];
-let selectedPlayers = [];
-let currentTasks = [];
-let currentMatch = null;
-let MAX_PLAYERS = 0;
-
-const input = document.getElementById("playerInput");
+const input = playerInput;
 const suggestions = document.getElementById("suggestions");
-const selectedContainer = document.getElementById("selectedPlayers");
-const countDisplay = document.getElementById("playerCountDisplay");
-const startBtn = document.getElementById("startGameBtn");
-const matchSettingsDiv = document.getElementById("matchSettings");
-const tasksContainer = document.getElementById("tasksContainer");
-const saveScoresBtn = document.getElementById("saveScoresBtn");
+const selectedContainer = selectedPlayersDiv = document.getElementById("selectedPlayers");
+const countDisplay = playerCountDisplay;
+const startBtn = startGameBtn;
+const matchSettingsDiv = matchSettings;
+const tasksContainer = tasksContainerDiv = document.getElementById("tasksContainer");
+const saveScoresBtn = saveScoresBtnEl = document.getElementById("saveScoresBtn");
 
-// --- Fetch users from API ---
-async function fetchUsers() {
-    const res = await fetch(`/users/`, {
-        headers: { Authorization: `Bearer ${token}` }
-    });
-    users = await res.json();
+/* ================= API LOAD ================= */
+async function fetchUsers(){
+  users = await fetch("/users/",{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.json());
 }
+
+async function fetchMyMatches(){
+  allMatches = await fetch("/matches/my",{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.json());
+  renderMatchHistory(allMatches);
+}
+
 fetchUsers();
+fetchMyMatches();
 
-// --- Player count selection ---
-document.getElementById("playerCount").addEventListener("change", e => {
-    MAX_PLAYERS = parseInt(e.target.value) || 0;
-    selectedPlayers = [];
-    renderSelectedPlayers();
-    input.disabled = MAX_PLAYERS === 0;
-    updateStartButton();
+/* ================= PLAYER SELECTION ================= */
+playerCount.addEventListener("change", e=>{
+  MAX_PLAYERS = +e.target.value || 0;
+  selectedPlayers=[];
+  renderSelectedPlayers();
+  input.disabled=!MAX_PLAYERS;
+  updateStartButton();
 });
 
-// --- Show suggestions while typing ---
-input.addEventListener("input", () => {
-    const q = input.value.toLowerCase();
-    suggestions.innerHTML = "";
-    if (!q) return;
+input.addEventListener("input", ()=>{
+  const q=input.value.toLowerCase();
+  suggestions.innerHTML="";
+  if(!q) return;
 
-    users.filter(u =>
-        u.name.toLowerCase().includes(q) &&
-        !selectedPlayers.includes(u.name)
-    ).forEach(u => {
-        const div = document.createElement("div");
-        div.textContent = u.name;
-        div.className = "suggestion-item";
-        div.onclick = () => addPlayer(u.name);
-        suggestions.appendChild(div);
-    });
+  users.filter(u=>u.name.toLowerCase().includes(q) && !selectedPlayers.includes(u.name))
+       .forEach(u=>{
+        const d=document.createElement("div");
+        d.textContent=u.name;
+        d.className="suggestion-item";
+        d.onclick=()=>addPlayer(u.name);
+        suggestions.appendChild(d);
+       });
 });
 
-// --- Add player ---
-function addPlayer(name) {
-    if (selectedPlayers.length >= MAX_PLAYERS) return;
-    selectedPlayers.push(name);
-    input.value = "";
-    suggestions.innerHTML = "";
-    renderSelectedPlayers();
-    updateStartButton();
+function addPlayer(name){
+  if(selectedPlayers.length>=MAX_PLAYERS) return;
+  selectedPlayers.push(name);
+  input.value="";
+  suggestions.innerHTML="";
+  renderSelectedPlayers();
+  updateStartButton();
 }
 
-// --- Remove player ---
-function removePlayer(name) {
-    selectedPlayers = selectedPlayers.filter(p => p !== name);
-    renderSelectedPlayers();
-    updateStartButton();
+function removePlayer(name){
+  selectedPlayers=selectedPlayers.filter(p=>p!==name);
+  renderSelectedPlayers();
+  updateStartButton();
 }
 
-// --- Render selected players ---
-function renderSelectedPlayers() {
-    selectedContainer.innerHTML = "";
-    selectedPlayers.forEach(p => {
-        const span = document.createElement("span");
-        span.textContent = p;
-        span.className = "player-tag";
-        span.onclick = () => removePlayer(p);
-        selectedContainer.appendChild(span);
-    });
-    countDisplay.textContent = selectedPlayers.length;
+function renderSelectedPlayers(){
+  selectedContainer.innerHTML="";
+  selectedPlayers.forEach(p=>{
+    const s=document.createElement("span");
+    s.textContent=p;
+    s.className="player-tag";
+    s.onclick=()=>removePlayer(p);
+    selectedContainer.appendChild(s);
+  });
+  countDisplay.textContent=selectedPlayers.length;
 }
 
-// --- Enable / disable start button ---
-function updateStartButton() {
-    if (selectedPlayers.length === MAX_PLAYERS && MAX_PLAYERS > 0) {
-        startBtn.disabled = false;
-        startBtn.classList.add("enabled");
-    } else {
-        startBtn.disabled = true;
-        startBtn.classList.remove("enabled");
-    }
+function updateStartButton(){
+  startBtn.disabled = !(selectedPlayers.length===MAX_PLAYERS && MAX_PLAYERS>0);
+  startBtn.classList.toggle("enabled", !startBtn.disabled);
 }
 
-// --- Start game ---
-startBtn.addEventListener("click", async () => {
-    if (selectedPlayers.length !== MAX_PLAYERS || MAX_PLAYERS === 0) return;
-
-    try {
-        const res = await fetch(`/start_kingdom_builder/`, {
-            method: "POST",
-            headers: {
-                "Authorization": `Bearer ${token}`,
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify(selectedPlayers)
-        });
-
-        currentMatch = await res.json();
-
-        if (!res.ok) {
-            alert("Error creating match: " + JSON.stringify(currentMatch.detail || currentMatch));
-            console.log("Match creation error:", currentMatch);
-            return;
-        }
-
-        console.log("Match created:", currentMatch);
-
-        // --- Render Map & Match Settings ---
-        matchSettingsDiv.innerHTML = "";
-        matchSettingsDiv.appendChild(renderMap(currentMatch.map));
-        matchSettingsDiv.innerHTML += `
-            <p><strong>Island:</strong> ${currentMatch.island}</p>
-            <p><strong>Caves:</strong> ${currentMatch.caves}</p>
-            <p><strong>Capitols:</strong> ${currentMatch.capitols}</p>
-        `;
-
-        // --- Render Tasks ---
-        currentTasks = currentMatch.tasks;
-        console.log("Tasks loaded:", currentTasks);
-        renderTasks();
-
-    } catch (err) {
-        console.error("Error connecting to server:", err);
-        alert("Error connecting to server");
-    }
-});
-
-// --- Render map ---
-function renderMap(map) {
-    const grid = document.createElement("div");
-    grid.className = "map-grid";
-
-    map.forEach(tile => {
-        const [id, expansion, name, orientation] = tile;
-        const div = document.createElement("div");
-        div.className = "map-tile";
-        div.innerHTML = `
-            <div class="map-title">${name}</div>
-            <div class="map-meta">${expansion} · ${orientation === "upright" ? "↑ upright" : "↺ reversed"}</div>
-        `;
-        grid.appendChild(div);
-    });
-
-    return grid;
-}
-
-// --- Render tasks and score inputs ---
-function renderTasks() {
-    tasksContainer.innerHTML = "";
-    if (!currentTasks || currentTasks.length === 0) {
-        tasksContainer.textContent = "Keine Aufgaben vorhanden.";
-        saveScoresBtn.disabled = true;
-        saveScoresBtn.classList.remove("enabled");
-        return;
-    }
-
-    const table = document.createElement("table");
-
-    // Header row
-    const thead = document.createElement("thead");
-    const headerRow = document.createElement("tr");
-    const thTask = document.createElement("th");
-    thTask.textContent = "Aufgabe";
-    headerRow.appendChild(thTask);
-
-    selectedPlayers.forEach(player => {
-        const th = document.createElement("th");
-        th.textContent = player;
-        headerRow.appendChild(th);
-    });
-
-    thead.appendChild(headerRow);
-    table.appendChild(thead);
-
-    // Table body
-    const tbody = document.createElement("tbody");
-    currentTasks.forEach(task => {
-        const taskName = String(task.name);
-        const tr = document.createElement("tr");
-
-        const tdTask = document.createElement("td");
-        tdTask.textContent = taskName;
-        tr.appendChild(tdTask);
-
-        selectedPlayers.forEach(() => {
-            const td = document.createElement("td");
-            const input = document.createElement("input");
-            input.type = "number";
-            input.className = "score-input";
-            input.value = 0;
-
-            // live total update
-            input.addEventListener("input", recalculateTotals);
-            td.appendChild(input);
-            tr.appendChild(td);
-        });
-
-        tbody.appendChild(tr);
-    });
-
-    table.appendChild(tbody);
-    tasksContainer.appendChild(table);
-
-    // --- Total score row ---
-const totalRow = document.createElement("tr");
-totalRow.id = "totalRow";
-
-const totalLabel = document.createElement("td");
-totalLabel.textContent = "Gesamt";
-totalLabel.style.fontWeight = "bold";
-totalRow.appendChild(totalLabel);
-
-selectedPlayers.forEach(() => {
-    const td = document.createElement("td");
-    td.textContent = "0";
-    td.className = "total-cell";
-    totalRow.appendChild(td);
-});
-
-tbody.appendChild(totalRow);
-
-    // Enable save scores button
-    saveScoresBtn.disabled = false;
-    saveScoresBtn.classList.add("enabled");
-}
-
-// --- Save Scores Button ---
-saveScoresBtn.addEventListener("click", () => {
-    const table = tasksContainer.querySelector("table");
-    if (!table) return;
-
-    const scores = {};
-    const rows = Array.from(table.querySelectorAll("tbody tr"));
-    rows.forEach(row => {
-        const taskName = row.cells[0].textContent;
-        scores[taskName] = {};
-        selectedPlayers.forEach((player, idx) => {
-        if (row.id === "totalRow") return;
-
-            const value = parseInt(row.cells[idx + 1].querySelector("input").value) || 0;
-            scores[taskName][player] = value;
-
-            // Replace input with text
-            row.cells[idx + 1].textContent = value;
-        });
-    });
-
-  fetch(`/matches/scores/`, {
-    method: "POST",
-    headers: {
-        "Authorization": `Bearer ${token}`,
-        "Content-Type": "application/json"
+/* ================= START MATCH ================= */
+startBtn.onclick = async ()=>{
+  const res = await fetch("/start_kingdom_builder/",{
+    method:"POST",
+    headers:{
+      Authorization:`Bearer ${token}`,
+      "Content-Type":"application/json"
     },
-    body: JSON.stringify({
-        match_id: currentMatch.match_id,
-        scores: scores
-    })
+    body:JSON.stringify(selectedPlayers)
+  });
 
-});
-    console.log("Sending payload:",
-    {
-    match_id: currentMatch.match_id,
-    scores: scores
-    })
-    console.log("Current Scores:", scores);
-    alert("Scores have been entered into the table. Check console for details.");
-});
+  currentMatch = await res.json();
+  if(!res.ok){ alert(JSON.stringify(currentMatch)); return; }
 
-  function recalculateTotals() {
-    const table = tasksContainer.querySelector("table");
-    if (!table) return;
+  renderMatchSettings(currentMatch);
+// --- Render Tasks ---
+currentTasks = currentMatch.tasks;
+console.log("Tasks loaded:", currentTasks);
+renderTasks();
 
-    const totals = {};
-    selectedPlayers.forEach(p => totals[p] = 0);
+// Reload match history after creating match
+await fetchMyMatches();
+};
 
-    const rows = Array.from(table.querySelectorAll("tbody tr"));
-
-    rows.forEach(row => {
-        // Skip total row
-        if (row.id === "totalRow") return;
-
-        selectedPlayers.forEach((player, idx) => {
-            const cell = row.cells[idx + 1];
-            if (!cell) return;
-
-            const input = cell.querySelector("input");
-            if (!input) return;   // WICHTIG!
-            const value = parseInt(input.value) || 0;
-            totals[player] += value;
-        });
-    });
-
-    // Write totals
-    const totalRow = document.getElementById("totalRow");
-    if (!totalRow) return;
-
-    selectedPlayers.forEach((player, idx) => {
-        totalRow.cells[idx + 1].textContent = totals[player];
-    });
+/* ================= MAP & SETTINGS ================= */
+function renderMatchSettings(m){
+  matchSettingsDiv.innerHTML="";
+  matchSettingsDiv.appendChild(renderMap(m.map));
+  matchSettingsDiv.innerHTML += `
+    <p><b>Island:</b> ${m.island}</p>
+    <p><b>Caves:</b> ${m.caves}</p>
+    <p><b>Capitols:</b> ${m.capitols}</p>`;
 }
 
+function renderMap(map){
+  const grid=document.createElement("div");
+  grid.className="map-grid";
+  map.forEach(([id,exp,name,ori])=>{
+    const d=document.createElement("div");
+    d.className="map-tile";
+    d.innerHTML=`<div class="map-title">${name}</div>
+                 <div class="map-meta">${exp} · ${ori==="upright"?"↑ upright":"↺ reversed"}</div>`;
+    grid.appendChild(d);
+  });
+  return grid;
+}
+
+/* ================= TASK TABLE ================= */
+function renderTasks(){
+  tasksContainer.innerHTML="";
+  if(!currentTasks?.length){ tasksContainer.textContent="Keine Aufgaben"; return; }
+
+  const table=document.createElement("table");
+  const thead=document.createElement("thead");
+  const hr=document.createElement("tr");
+  hr.innerHTML="<th>Aufgabe</th>"+selectedPlayers.map(p=>`<th>${p}</th>`).join("");
+  thead.appendChild(hr);
+  table.appendChild(thead);
+
+  const tbody=document.createElement("tbody");
+
+  currentTasks.forEach(task=>{
+    const tr=document.createElement("tr");
+    tr.innerHTML=`<td>${task.name}</td>`;
+    selectedPlayers.forEach(()=>{
+      const td=document.createElement("td");
+      const inp=document.createElement("input");
+      inp.type="number";
+      inp.value=0;
+      inp.className="score-input";
+      inp.oninput=recalculateTotals;
+      td.appendChild(inp);
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+
+  const totalRow=document.createElement("tr");
+  totalRow.id="totalRow";
+  totalRow.innerHTML="<td><b>Gesamt</b></td>"+selectedPlayers.map(()=>"<td>0</td>").join("");
+  tbody.appendChild(totalRow);
+
+  table.appendChild(tbody);
+  tasksContainer.appendChild(table);
+
+  saveScoresBtn.disabled=false;
+  saveScoresBtn.classList.add("enabled");
+}
+
+/* ================= TOTALS ================= */
+function recalculateTotals(){
+  const table=tasksContainer.querySelector("table");
+  if(!table) return;
+  const totals=Object.fromEntries(selectedPlayers.map(p=>[p,0]));
+
+  table.querySelectorAll("tbody tr").forEach(row=>{
+    if(row.id==="totalRow") return;
+    selectedPlayers.forEach((p,i)=>{
+      const v=parseInt(row.cells[i+1].querySelector("input")?.value)||0;
+      totals[p]+=v;
+    });
+  });
+
+  const totalRow=document.getElementById("totalRow");
+  selectedPlayers.forEach((p,i)=> totalRow.cells[i+1].textContent=totals[p]);
+}
+
+/* ================= SAVE SCORES ================= */
+saveScoresBtn.onclick=()=>{
+  const table=tasksContainer.querySelector("table");
+  const scores={};
+
+  table.querySelectorAll("tbody tr").forEach(row=>{
+    if(row.id==="totalRow") return;
+    const task=row.cells[0].textContent;
+    scores[task]={};
+    selectedPlayers.forEach((p,i)=>{
+      const v=parseInt(row.cells[i+1].querySelector("input").value)||0;
+      scores[task][p]=v;
+      row.cells[i+1].textContent=v;
+    });
+  });
+
+  fetch("/matches/scores/",{
+    method:"POST",
+    headers:{Authorization:`Bearer ${token}`,"Content-Type":"application/json"},
+    body:JSON.stringify({match_id:currentMatch.match_id,scores})
+  });
+
+  alert("Scores gespeichert!");
+};
+
+/* ================= MATCH HISTORY ================= */
+function renderMatchHistory(matches){
+  const container=document.getElementById("matchHistory");
+  container.innerHTML="";
+  if(!matches.length){ container.textContent="Keine Matches"; return; }
+
+  matches.sort((a,b)=>new Date(b.date)-new Date(a.date));
+
+  const table=document.createElement("table");
+  table.innerHTML="<thead><tr><th>Datum</th><th>Spieler</th><th>Scores</th><th>Details</th></tr></thead>";
+  const tbody=document.createElement("tbody");
+
+  matches.forEach(m=>{
+    const max=Math.max(...Object.values(m.scores));
+    const html=Object.entries(m.scores).map(([p,s])=>s===max?`<b>${p}:${s}</b>`:`${p}:${s}`).join(" | ");
+    const tr=document.createElement("tr");
+    tr.innerHTML=`<td>${m.date}</td><td>${m.player_count}</td><td>${html}</td>
+                  <td><button onclick="showMatchDetails(${m.match_id})">🔍</button></td>`;
+    tbody.appendChild(tr);
+  });
+
+  table.appendChild(tbody);
+  container.appendChild(table);
+}
+
+/* ================= FILTERS ================= */
+filterPlayerCount.onchange=applyFilters;
+filterPlayerName.oninput=applyFilters;
+
+function applyFilters(){
+  let f=allMatches;
+  const c=filterPlayerCount.value;
+  const n=filterPlayerName.value.toLowerCase();
+  if(c) f=f.filter(m=>m.player_count==c);
+  if(n) f=f.filter(m=>m.players.some(p=>p.toLowerCase().includes(n)));
+  renderMatchHistory(f);
+}
+
+/* ================= MATCH DETAIL MODAL ================= */
+async function showMatchDetails(id){
+  const data = await fetch(`/matches/${id}`,{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.json());
+  const div=document.getElementById("matchDetailContent");
+  div.innerHTML="<h2>Match Details</h2>";
+
+  if(data.map) div.appendChild(renderMap(data.map));
+  div.innerHTML+=`<p><b>Island:</b> ${data.island}</p>
+                  <p><b>Caves:</b> ${data.caves}</p>
+                  <p><b>Capitols:</b> ${data.capitols}</p>`;
+
+  for(let p in data.players){
+    div.innerHTML+=`<h4>${p} (Total: ${data.players[p].total})</h4><ul>`;
+    for(let t in data.players[p].details){
+      div.innerHTML+=`<li>${t}: ${data.players[p].details[t]}</li>`;
+    }
+    div.innerHTML+="</ul>";
+  }
+
+  matchDetailModal.style.display="block";
+}
+
+function closeMatchDetails(){
+  matchDetailModal.style.display="none";
+}
 </script>
 
 </body>
