@@ -57,36 +57,37 @@ def capitols_queenie():
         return 'one capitol'
 
 
-#TODO: change to english words?
-TASKS = ["Fischer", "Bergleute", "Händler", "Arbeiter", "Entdecker", "Ritter", "Einsiedler", "Bürger", "Bauern", "Familien", "Hirten", "Botschafter", "Geologen", "Boten", "Adel", "Vasallen", "Hauptmänner", "Späher", "Waldläufer", "Abenteurer", "Wirt", "Landbesitzer", "Bürgermeister", "Vagabund"]
-CROSSROAD_TASKS = ["Heimatland", "Zufluchtsort", "Festung", "Vormarsch", "Straße", "Himmelsrichtungen"]
+#fyi: Lords excluded
+TASKS = ["Fishermen", "Miners", "Merchants", "Workers", "Discoverer", "Knights", "Hermits", "Citizens", "Farmers", "Families", "Shepherds", "Ambassadors", "Geologists", "Messengers", "Noblewomen", "Vassals", "Captains", "Scouts", "Rangers", "Travellers", "Chainers", "Homesteaders", "Mayors", "Rovers"]
+CROSSROAD_TASKS = ["Home Country", "Place of Refuge", "Fortress", "Advance", "Road", "Compass Points"]
 
-# [ID, "expansion", "title", # (placeholder), castles, palaces, Silos, Höhlengebirge]
+
+# [ID, "expansion", "title", # (placeholder), castles, palaces, Silos, Mountain Caves]
 MAP_TILES = [
-    [1, "KB", "Orakel"], #, 2, 0, 0, 2
-    [2, "KB", "Schiff"], #, 2, 0, 0, 1
-    [3, "KB", "Oase"], # , 1, 0, 0, 0
-    [4, "KB", "Pferde"], #, 1, 0, 0, 13
-    [5, "KB", "Bauernhof"], #, 1, 0, 0, 9
-    [6, "KB", "Türme"], #, 1, 0, 0, 9
-    [7, "KB", "Grasland"],#, 1, 0, 0, 2
-    [8, "KB", "3zu4"], #, 1, 0, 0, 9
-    [9, "N", "Mauern"],#, 0, 0, 0, 3
-    [10, "N", "Stadt"], #, 0, 0, 0, 4
-    [11, "N", "Gärten"], #, 0, 0, 0, 5
-    [12, "N", "Kamele"], #, 0, 0, 0, 1
-    [13, "C", "Leuchtturm"], #, 1, 0, 0, 3
-    [14, "C", "Kapitol"], # , 1, 0, 0, 6  TODO: renaming to Rathaus?
-    [15, "C", "Wagen"], #, 1, 0, 0, 6
-    [16, "C", "Kreuzung"], #, 1, 0, 0, 1
-    [17, "H", "Funkturm"], #, 0, 0, 1, 1
-    [18, "H", "Späher"], #, 1, 0, 1, 2
-    [19, "H", "Wassermühle"], #, 0, 0, 1, 6
+    [1, "KB", "Oracle"], #, 2, 0, 0, 2
+    [2, "KB", "Harbor"], #, 2, 0, 0, 1
+    [3, "KB", "Oasis"], # , 1, 0, 0, 0
+    [4, "KB", "Paddock"], #, 1, 0, 0, 13
+    [5, "KB", "Barn"], #, 1, 0, 0, 9
+    [6, "KB", "Tower"], #, 1, 0, 0, 9
+    [7, "KB", "Farm"],#, 1, 0, 0, 2
+    [8, "KB", "Tavern"], #, 1, 0, 0, 9
+    [9, "N", "Quarry"],#, 0, 0, 0, 3
+    [10, "N", "Village"], #, 0, 0, 0, 4
+    [11, "N", "Garden"], #, 0, 0, 0, 5
+    [12, "N", "Caravan"], #, 0, 0, 0, 1
+    [13, "C", "Lighthouse"], #, 1, 0, 0, 3
+    [14, "C", "Fort"], # , 1, 0, 0, 6
+    [15, "C", "Wagon"], #, 1, 0, 0, 6
+    [16, "C", "Crossroads"], #, 1, 0, 0, 1
+    [17, "H", "Watchtower"], #, 0, 0, 1, 1
+    [18, "H", "Scout Cabin"], #, 1, 0, 1, 2
+    [19, "H", "Water Mill"], #, 0, 0, 1, 6
     [20, "H", "Palisade"], #, 0, 0, 1, 3
-    [21, "M", "Schloss"], #, 0, 1, 0, 6
-    [22, "M", "Tempel"], #, 0, 1, 0, 1
-    [23, "M", "Brunnen"],#, 0, 1, 0, 2
-    [24, "M", "Kanu"], #, 0, 1, 0, 7
+    [21, "M", "Refuge"], #, 0, 1, 0, 6
+    [22, "M", "Temple"], #, 0, 1, 0, 1
+    [23, "M", "Fountain"],#, 0, 1, 0, 2
+    [24, "M", "Canoe"], #, 0, 1, 0, 7
 ]
 
 def create_match():

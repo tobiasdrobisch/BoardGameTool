@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <title>Kingdom Builder Tool</title>
@@ -174,35 +174,35 @@ input.score-input {
 <div class="left-panel">
 <h1>Kingdom Builder</h1>
 
-<label>Spieleranzahl:</label>
+<label>Player count:</label>
 <select id="playerCount">
-  <option value="">Bitte auswählen</option>
-  <option value="2">2 Spieler</option>
-  <option value="3">3 Spieler</option>
-  <option value="4">4 Spieler</option>
-  <option value="5">5 Spieler</option>
+  <option value="">Select players</option>
+  <option value="2">2 Players</option>
+  <option value="3">3 Players</option>
+  <option value="4">4 Players</option>
+  <option value="5">5 Players</option>
 </select>
 
-<h3>Spieler auswählen</h3>
+<h3>Select players</h3>
 <div id="playerInputContainer">
-  <input id="playerInput" placeholder="Spielername..." disabled>
+  <input id="playerInput" placeholder="Enter player name..." disabled>
   <div id="suggestions"></div>
 </div>
 
 <div id="selectedPlayers"></div>
-<p>Ausgewählte Spieler: <b id="playerCountDisplay">0</b></p>
+<p>Selected players: <b id="playerCountDisplay">0</b></p>
 
-<button id="startGameBtn" disabled>Spiel starten</button>
+<button id="startGameBtn" disabled>Create Match</button>
 </div>
 
 <!-- RIGHT PANEL -->
 <div class="right-panel">
-<h3>Match Einstellungen</h3>
-<div id="matchSettings">Noch kein Spiel erstellt.</div>
+<h3>Match Settings</h3>
+<div id="matchSettings">No match created yet.</div>
 
-<h3>Aufgaben & Punkte</h3>
+<h3>Tasks & Scores</h3>
 <div id="tasksContainer"></div>
-<button id="saveScoresBtn" disabled>Punkte speichern</button>
+<button id="saveScoresBtn" disabled>Save Scores</button>
 </div>
 
 </div>
@@ -210,20 +210,20 @@ input.score-input {
 <hr>
 
 <!-- MATCH HISTORY -->
-<h3>Gespielte Partien</h3>
+<h3>Played Matches</h3>
 
 <div id="matchFilters">
-Spieleranzahl:
+Player count:
 <select id="filterPlayerCount">
-  <option value="">Alle</option>
+  <option value="">All</option>
   <option value="2">2</option>
   <option value="3">3</option>
   <option value="4">4</option>
   <option value="5">5</option>
 </select>
 
-Mitspieler:
-<input id="filterPlayerName" placeholder="Name eingeben...">
+Player name:
+<input id="filterPlayerName" placeholder="Enter name...">
 </div>
 
 <div id="matchHistory"></div>
@@ -332,13 +332,10 @@ startBtn.onclick = async ()=>{
   if(!res.ok){ alert(JSON.stringify(currentMatch)); return; }
 
   renderMatchSettings(currentMatch);
-// --- Render Tasks ---
-currentTasks = currentMatch.tasks;
-console.log("Tasks loaded:", currentTasks);
-renderTasks();
+  currentTasks = currentMatch.tasks;
+  renderTasks();
 
-// Reload match history after creating match
-await fetchMyMatches();
+  await fetchMyMatches();
 };
 
 /* ================= MAP & SETTINGS ================= */
@@ -367,12 +364,12 @@ function renderMap(map){
 /* ================= TASK TABLE ================= */
 function renderTasks(){
   tasksContainer.innerHTML="";
-  if(!currentTasks?.length){ tasksContainer.textContent="Keine Aufgaben"; return; }
+  if(!currentTasks?.length){ tasksContainer.textContent="No tasks available"; return; }
 
   const table=document.createElement("table");
   const thead=document.createElement("thead");
   const hr=document.createElement("tr");
-  hr.innerHTML="<th>Aufgabe</th>"+selectedPlayers.map(p=>`<th>${p}</th>`).join("");
+  hr.innerHTML="<th>Task</th>"+selectedPlayers.map(p=>`<th>${p}</th>`).join("");
   thead.appendChild(hr);
   table.appendChild(thead);
 
@@ -396,7 +393,7 @@ function renderTasks(){
 
   const totalRow=document.createElement("tr");
   totalRow.id="totalRow";
-  totalRow.innerHTML="<td><b>Gesamt</b></td>"+selectedPlayers.map(()=>"<td>0</td>").join("");
+  totalRow.innerHTML="<td><b>Total</b></td>"+selectedPlayers.map(()=>"<td>0</td>").join("");
   tbody.appendChild(totalRow);
 
   table.appendChild(tbody);
@@ -446,19 +443,19 @@ saveScoresBtn.onclick=()=>{
     body:JSON.stringify({match_id:currentMatch.match_id,scores})
   });
 
-  alert("Scores gespeichert!");
+  alert("Scores saved!");
 };
 
 /* ================= MATCH HISTORY ================= */
 function renderMatchHistory(matches){
   const container=document.getElementById("matchHistory");
   container.innerHTML="";
-  if(!matches.length){ container.textContent="Keine Matches"; return; }
+  if(!matches.length){ container.textContent="No matches yet"; return; }
 
   matches.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at))
 
   const table=document.createElement("table");
-  table.innerHTML="<thead><tr><th>Datum</th><th>Spieler</th><th>Scores</th><th>Details</th></tr></thead>";
+  table.innerHTML="<thead><tr><th>Date</th><th>Players</th><th>Scores</th><th>Details</th></tr></thead>";
   const tbody=document.createElement("tbody");
 
   matches.forEach(m=>{
