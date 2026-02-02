@@ -2,9 +2,9 @@ from fastapi import FastAPI, Depends, HTTPException, status, Body, APIRouter
 from fastapi.security import OAuth2PasswordBearer
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import desc
 from sqlalchemy.orm import Session
 from fastapi.responses import FileResponse, HTMLResponse
-from datetime import timedelta
 from .database import Base, engine, get_db, SessionLocal
 from . import schemas, crud, utils, models
 from games import kingdom_builder
@@ -174,25 +174,45 @@ def save_match_scores(payload: schemas.MatchScoresCreate, db: Session = Depends(
             db.refresh(result)
     return {"status": "ok"}
 
+
 @app.get("/matches/my")
 def get_my_matches(db: Session = Depends(get_db), current_user=Depends(get_current_user)):
-    matches = db.query(models.Match).filter(models.Match.created_by == current_user.id).all()
+
+    # sort at backend for newest match desc
+    matches = (
+        db.query(models.Match)
+        .filter(models.Match.created_by == current_user.id)
+        .order_by(desc(models.Match.created_at))
+        .all()
+    )
+
     result = []
+
     for m in matches:
         players = db.query(models.MatchPlayer).filter(models.MatchPlayer.match_id == m.id).all()
         player_names = [p.username for p in players]
+
         scores = {}
         for p in players:
             match_result = db.query(models.MatchResult).filter(models.MatchResult.match_player_id == p.id).first()
             scores[p.username] = match_result.total_score if match_result else 0
+
         result.append({
             "match_id": m.id,
-            "date": m.created_at.strftime("%Y-%m-%d"),
+
+            # Raw timestamp for sorting
+            "created_at": m.created_at.isoformat(),
+
+            # Pretty display date
+            "date": m.created_at.strftime("%Y-%m-%d %H:%M"),
+
             "players": player_names,
             "player_count": len(player_names),
             "scores": scores,
         })
+
     return result
+
 
 @app.get("/matches/{match_id}")
 def get_match_detail(match_id: int, db: Session = Depends(get_db), current_user=Depends(get_current_user)):

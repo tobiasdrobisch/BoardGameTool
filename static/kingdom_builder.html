@@ -245,6 +245,12 @@ const matchSettingsDiv = matchSettings;
 const tasksContainer = tasksContainerDiv = document.getElementById("tasksContainer");
 const saveScoresBtn = saveScoresBtnEl = document.getElementById("saveScoresBtn");
 
+window.addEventListener("DOMContentLoaded", async () => {
+  await fetchUsers();
+  await fetchMyMatches();
+});
+
+
 /* ================= API LOAD ================= */
 async function fetchUsers(){
   users = await fetch("/users/",{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.json());
@@ -254,9 +260,6 @@ async function fetchMyMatches(){
   allMatches = await fetch("/matches/my",{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.json());
   renderMatchHistory(allMatches);
 }
-
-fetchUsers();
-fetchMyMatches();
 
 /* ================= PLAYER SELECTION ================= */
 playerCount.addEventListener("change", e=>{
@@ -452,7 +455,7 @@ function renderMatchHistory(matches){
   container.innerHTML="";
   if(!matches.length){ container.textContent="Keine Matches"; return; }
 
-  matches.sort((a,b)=>new Date(b.date)-new Date(a.date));
+  matches.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at))
 
   const table=document.createElement("table");
   table.innerHTML="<thead><tr><th>Datum</th><th>Spieler</th><th>Scores</th><th>Details</th></tr></thead>";
@@ -462,8 +465,12 @@ function renderMatchHistory(matches){
     const max=Math.max(...Object.values(m.scores));
     const html=Object.entries(m.scores).map(([p,s])=>s===max?`<b>${p}:${s}</b>`:`${p}:${s}`).join(" | ");
     const tr=document.createElement("tr");
-    tr.innerHTML=`<td>${m.date}</td><td>${m.player_count}</td><td>${html}</td>
-                  <td><button onclick="showMatchDetails(${m.match_id})">🔍</button></td>`;
+    tr.innerHTML=`
+    <td>${m.date}</td>
+    <td>${m.player_count}</td>
+    <td>${html}</td>
+    <td><button onclick="showMatchDetails(${m.match_id})">🔍</button></td>`
+    ;
     tbody.appendChild(tr);
   });
 
