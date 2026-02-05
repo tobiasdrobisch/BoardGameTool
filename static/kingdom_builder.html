@@ -371,44 +371,78 @@ function renderMap(map){
 /* ================= TASK TABLE ================= */
 function renderTasks(){
   tasksContainer.innerHTML="";
-  if(!currentTasks?.length){ tasksContainer.textContent="No tasks available"; return; }
+  if(!currentTasks?.length){
+    tasksContainer.textContent="No tasks available";
+    return;
+  }
 
-  const table=document.createElement("table");
-  const thead=document.createElement("thead");
-  const hr=document.createElement("tr");
-  hr.innerHTML="<th>Task</th>"+selectedPlayers.map(p=>`<th>${p}</th>`).join("");
+  const table = document.createElement("table");
+
+  // HEADER
+  const thead = document.createElement("thead");
+  const hr = document.createElement("tr");
+
+  const thTask = document.createElement("th");
+  thTask.textContent = "Task";
+  hr.appendChild(thTask);
+
+  selectedPlayers.forEach(p=>{
+    const th = document.createElement("th");
+    th.textContent = p;
+    hr.appendChild(th);
+  });
+
   thead.appendChild(hr);
   table.appendChild(thead);
 
-  const tbody=document.createElement("tbody");
+  // BODY
+  const tbody = document.createElement("tbody");
 
   currentTasks.forEach(task=>{
-    const tr=document.createElement("tr");
-    tr.textContent=`<td>${task.name}</td>`;
+    const tr = document.createElement("tr");
+
+    // Task name cell
+    const tdTask = document.createElement("td");
+    tdTask.textContent = task.name; // SAFE
+    tr.appendChild(tdTask);
+
+    // Player score inputs
     selectedPlayers.forEach(()=>{
-      const td=document.createElement("td");
-      const inp=document.createElement("input");
-      inp.type="number";
-      inp.value=0;
-      inp.className="score-input";
-      inp.oninput=recalculateTotals;
+      const td = document.createElement("td");
+      const inp = document.createElement("input");
+      inp.type = "number";
+      inp.value = 0;
+      inp.className = "score-input";
+      inp.oninput = recalculateTotals;
       td.appendChild(inp);
       tr.appendChild(td);
     });
+
     tbody.appendChild(tr);
   });
 
-  const totalRow=document.createElement("tr");
-  totalRow.id="totalRow";
-  totalRow.innerHTML="<td><b>Total</b></td>"+selectedPlayers.map(()=>"<td>0</td>").join("");
-  tbody.appendChild(totalRow);
+  // TOTAL ROW
+  const totalRow = document.createElement("tr");
+  totalRow.id = "totalRow";
 
+  const tdTotal = document.createElement("td");
+  tdTotal.innerHTML = "<b>Total</b>";
+  totalRow.appendChild(tdTotal);
+
+  selectedPlayers.forEach(()=>{
+    const td = document.createElement("td");
+    td.textContent = "0";
+    totalRow.appendChild(td);
+  });
+
+  tbody.appendChild(totalRow);
   table.appendChild(tbody);
   tasksContainer.appendChild(table);
 
-  saveScoresBtn.disabled=false;
+  saveScoresBtn.disabled = false;
   saveScoresBtn.classList.add("enabled");
 }
+
 
 /* ================= TOTALS ================= */
 function recalculateTotals(){
