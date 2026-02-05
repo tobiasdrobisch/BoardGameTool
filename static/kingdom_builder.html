@@ -319,14 +319,18 @@ function updateStartButton(){
 
 /* ================= START MATCH ================= */
 startBtn.onclick = async ()=>{
-  const res = await fetch("/start_kingdom_builder/",{
-    method:"POST",
-    headers:{
-      Authorization:`Bearer ${token}`,
-      "Content-Type":"application/json"
-    },
+  if(startBtn.disabled) return;
+    startBtn.disabled = true;
+
+  try {
+    const res = await fetch("/start_kingdom_builder/",{
+      method:"POST",
+      headers:{
+        Authorization:`Bearer ${token}`,
+        "Content-Type":"application/json"
+      },
     body:JSON.stringify(selectedPlayers)
-  });
+    });
 
   currentMatch = await res.json();
   if(!res.ok){ alert(JSON.stringify(currentMatch)); return; }
@@ -336,6 +340,9 @@ startBtn.onclick = async ()=>{
   renderTasks();
 
   await fetchMyMatches();
+  } finally {
+    startBtn.disabled = false;
+  }
 };
 
 /* ================= MAP & SETTINGS ================= */
