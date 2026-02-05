@@ -489,7 +489,7 @@ filterPlayerName.oninput=applyFilters;
 function applyFilters(){
   let f=allMatches;
   const c=filterPlayerCount.value;
-  const n=filterPlayerName.value.toLowerCase();
+  const n = filterPlayerName.value.toLowerCase().slice(0, 30);
   if(c) f=f.filter(m=>m.player_count==c);
   if(n) f=f.filter(m=>m.players.some(p=>p.toLowerCase().includes(n)));
   renderMatchHistory(f);
