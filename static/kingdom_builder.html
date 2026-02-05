@@ -384,7 +384,7 @@ function renderTasks(){
 
   currentTasks.forEach(task=>{
     const tr=document.createElement("tr");
-    tr.innerHTML=`<td>${task.name}</td>`;
+    tr.textContent=`<td>${task.name}</td>`;
     selectedPlayers.forEach(()=>{
       const td=document.createElement("td");
       const inp=document.createElement("input");
@@ -465,18 +465,44 @@ function renderMatchHistory(matches){
   table.innerHTML="<thead><tr><th>Date</th><th>Players</th><th>Scores</th><th>Details</th></tr></thead>";
   const tbody=document.createElement("tbody");
 
-  matches.forEach(m=>{
-    const max=Math.max(...Object.values(m.scores));
-    const html=Object.entries(m.scores).map(([p,s])=>s===max?`<b>${p}:${s}</b>`:`${p}:${s}`).join(" | ");
-    const tr=document.createElement("tr");
-    tr.innerHTML=`
-    <td>${m.date}</td>
-    <td>${m.player_count}</td>
-    <td>${html}</td>
-    <td><button onclick="showMatchDetails(${m.match_id})">🔍</button></td>`
-    ;
-    tbody.appendChild(tr);
+matches.forEach(m => {
+  const tr = document.createElement("tr");
+
+  const tdDate = document.createElement("td");
+  tdDate.textContent = m.date;
+
+  const tdCount = document.createElement("td");
+  tdCount.textContent = m.player_count;
+
+  const tdScores = document.createElement("td");
+  const max = Math.max(...Object.values(m.scores));
+
+  Object.entries(m.scores).forEach(([p, s], i) => {
+    const span = document.createElement("span");
+    span.textContent = `${p}:${s}`;
+
+    if (s === max) {
+      const b = document.createElement("b");
+      b.textContent = span.textContent;
+      tdScores.appendChild(b);
+    } else {
+      tdScores.appendChild(span);
+    }
+
+    if (i < Object.keys(m.scores).length - 1) {
+      tdScores.appendChild(document.createTextNode(" | "));
+    }
   });
+
+  const tdBtn = document.createElement("td");
+  const btn = document.createElement("button");
+  btn.textContent = "🔍";
+  btn.addEventListener("click", () => showMatchDetails(m.match_id));
+  tdBtn.appendChild(btn);
+
+  tr.append(tdDate, tdCount, tdScores, tdBtn);
+  tbody.appendChild(tr);
+});
 
   table.appendChild(tbody);
   container.appendChild(table);
