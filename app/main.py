@@ -96,7 +96,14 @@ def start_kingdom_builder(
         # Persist players for the match
         created_players = []
         for name in players:
-            crud.create_match_player(db=db, match_id=db_game.id, username=name)
+            user = crud.get_user_by_username(db, name)
+
+            crud.create_match_player(
+                db=db,
+                match_id=db_game.id,
+                user_id=user.id,
+                username_snapshot=user.name
+            )
             created_players.append(name)
 
         # Attach numeric IDs to tasks for frontend
@@ -158,7 +165,7 @@ def save_match_scores(payload: schemas.MatchScoresCreate, db: Session = Depends(
     if not match_players:
         raise HTTPException(status_code=404, detail="No players found for this game")
 
-    username_to_obj = {mp.username: mp for mp in match_players}
+    username_to_obj = {mp.username_snapshot: mp for mp in match_players}
 
     for task_name, player_scores in payload.scores.items():
         for username, score in player_scores.items():
@@ -189,13 +196,21 @@ def get_my_matches(db: Session = Depends(get_db), current_user=Depends(get_curre
     result = []
 
     for m in matches:
-        players = db.query(models.MatchPlayer).filter(models.MatchPlayer.match_id == m.id).all()
-        player_names = [p.username for p in players]
+        match_players = db.query(models.MatchPlayer).filter(models.MatchPlayer.match_id == m.id).all()
 
+        players_info = []
         scores = {}
-        for p in players:
-            match_result = db.query(models.MatchResult).filter(models.MatchResult.match_player_id == p.id).first()
-            scores[p.username] = match_result.total_score if match_result else 0
+
+        for mp in match_players:
+            # Username + user_id for Frontend
+            players_info.append({"username": mp.username_snapshot, "user_id": mp.user_id})
+
+            # get score
+            match_result = db.query(models.MatchResult).filter(models.MatchResult.match_player_id == mp.id).first()
+            scores[mp.user_id] = {
+                "username": mp.username_snapshot,
+                "score": match_result.total_score if match_result else 0
+            }
 
         result.append({
             "match_id": m.id,
@@ -206,8 +221,8 @@ def get_my_matches(db: Session = Depends(get_db), current_user=Depends(get_curre
             # Pretty display date
             "date": m.created_at.strftime("%Y-%m-%d %H:%M"),
 
-            "players": player_names,
-            "player_count": len(player_names),
+            "players": players_info, # list with username and user_id
+            "player_count": len(players_info),
             "scores": scores,
         })
 
@@ -242,6 +257,6 @@ def get_match_detail(match_id: int, db: Session = Depends(get_db), current_user=
             for v in values:
                 player_details[v.category] = v.value
             total_score = match_result.total_score
-        match_data["players"][mp.username] = {"total": total_score, "details": player_details}
+        match_data["players"][mp.user_id] = {"username": mp.username_snapshot, "total": total_score, "details": player_details}
 
     return match_data

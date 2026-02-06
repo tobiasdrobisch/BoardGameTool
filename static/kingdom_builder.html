@@ -508,25 +508,23 @@ matches.forEach(m => {
   const tdCount = document.createElement("td");
   tdCount.textContent = m.player_count;
 
+
   const tdScores = document.createElement("td");
-  const max = Math.max(...Object.values(m.scores));
+  const scoresArray = Object.values(m.scores);
+  const max = Math.max(...scoresArray.map(s => s.score));
 
-  Object.entries(m.scores).forEach(([p, s], i) => {
-    const span = document.createElement("span");
-    span.textContent = `${p}:${s}`;
+scoresArray.forEach((s, i) => {
+  // create single element, <b> if score == max, else <span>
+  const element = document.createElement(s.score === max ? "b" : "span");
+  element.textContent = `${s.username}:${s.score}`;
 
-    if (s === max) {
-      const b = document.createElement("b");
-      b.textContent = span.textContent;
-      tdScores.appendChild(b);
-    } else {
-      tdScores.appendChild(span);
-    }
+  tdScores.appendChild(element);
 
-    if (i < Object.keys(m.scores).length - 1) {
-      tdScores.appendChild(document.createTextNode(" | "));
-    }
-  });
+  // "|"- symbol only between elements
+  if (i < scoresArray.length - 1) {
+    tdScores.appendChild(document.createTextNode(" | "));
+  }
+});
 
   const tdBtn = document.createElement("td");
   const btn = document.createElement("button");

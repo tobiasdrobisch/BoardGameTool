@@ -38,17 +38,21 @@ class Match(Base):
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
+
 class MatchPlayer(Base):
     __tablename__ = "match_players"
 
     id = Column(Integer, primary_key=True, index=True)
+
     match_id = Column(Integer, ForeignKey("matches.id"), nullable=False)
- #   username = Column(String, ForeignKey("users.id"), nullable=False)
-    username = Column(String, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+
+    # Optional snapshot (recommended)
+    username_snapshot = Column(String, nullable=False)
 
     seat_number = Column(Integer, nullable=True)
-
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
 
 class MatchResult(Base):
     __tablename__ = "match_results"
