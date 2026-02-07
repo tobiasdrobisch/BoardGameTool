@@ -55,10 +55,13 @@ def create_match(db: Session, match: schemas.GameCreate, current_user):
     db.refresh(db_match)
     return db_match
 
-def create_match_player(db: Session, match_id: int, username: str):
-    db_player = models.MatchPlayer(match_id=match_id,
-                                   username=username
-                                   )
+
+def create_match_player(db: Session, match_id: int, user_id: int, username_snapshot: str):
+    db_player = models.MatchPlayer(
+        match_id=match_id,
+        user_id=user_id,
+        username_snapshot=username_snapshot
+    )
     db.add(db_player)
     db.commit()
     db.refresh(db_player)
