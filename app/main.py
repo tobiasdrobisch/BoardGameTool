@@ -5,8 +5,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import desc
 from sqlalchemy.orm import Session
 from fastapi.responses import FileResponse, HTMLResponse
-from .database import Base, engine, get_db, SessionLocal
 from . import schemas, crud, utils, models
+from .database import Base, engine, get_db, SessionLocal
 from games import kingdom_builder
 import logging
 from .seed import seed_board_games
@@ -47,6 +47,9 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 # Create tables
 try:
     Base.metadata.create_all(bind=engine)
+
+    models.Base.metadata.create_all(bind=engine)
+
     print("Tables created successfully.")
 except Exception as e:
     print(f"Failed to create tables: {e}")
