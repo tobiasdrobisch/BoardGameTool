@@ -162,6 +162,79 @@ def delete_me(current_user=Depends(get_current_user), db: Session = Depends(get_
     crud.delete_user(db, current_user.id)
     return {"msg": "User deleted successfully"}
 
+@app.get("/users/me/boardgames")
+def get_my_boardgames(
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    games = (
+        db.query(models.BoardGame)
+        .join(models.UserBoardGame)
+        .filter(models.UserBoardGame.user_id == current_user.id)
+        .all()
+    )
+
+    return games
+
+
+@app.delete("/users/me/boardgames/{board_game_id}")
+def remove_boardgame_from_user(
+    board_game_id: int,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    entry = (
+        db.query(models.UserBoardGame)
+        .filter(
+            models.UserBoardGame.user_id == current_user.id,
+            models.UserBoardGame.board_game_id == board_game_id
+        )
+        .first()
+    )
+
+    if not entry:
+        raise HTTPException(status_code=404, detail="Game not assigned")
+
+    db.delete(entry)
+    db.commit()
+
+    return {"message": "Board game removed"}
+
+
+@app.post("/users/me/boardgames/{board_game_id}")
+def add_boardgame_to_user(
+    board_game_id: int,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    game = db.query(models.BoardGame).filter(models.BoardGame.id == board_game_id).first()
+
+    if not game:
+        raise HTTPException(status_code=404, detail="Board game not found")
+
+    existing = (
+        db.query(models.UserBoardGame)
+        .filter(
+            models.UserBoardGame.user_id == current_user.id,
+            models.UserBoardGame.board_game_id == board_game_id
+        )
+        .first()
+    )
+
+    if existing:
+        raise HTTPException(status_code=400, detail="Game already added")
+
+    user_game = models.UserBoardGame(
+        user_id=current_user.id,
+        board_game_id=board_game_id
+    )
+
+    db.add(user_game)
+    db.commit()
+
+    return {"message": "Board game added"}
+
+
 @app.post("/matches/scores/")
 def save_match_scores(payload: schemas.MatchScoresCreate, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
     match_players = crud.get_match_players_by_match_id(db, payload.match_id)
@@ -263,3 +336,8 @@ def get_match_detail(match_id: int, db: Session = Depends(get_db), current_user=
         match_data["players"][mp.user_id] = {"username": mp.username_snapshot, "total": total_score, "details": player_details}
 
     return match_data
+
+
+@app.get("/boardgames")
+def get_all_boardgames(db: Session = Depends(get_db)):
+    return db.query(models.BoardGame).all()
