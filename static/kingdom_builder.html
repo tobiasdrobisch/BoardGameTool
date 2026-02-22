@@ -257,7 +257,6 @@ async function fetchUsers(){
 }
 
 async function fetchMyMatches(){
-  console.log("Test fetchmymatches")
   allMatches = await fetch("/matches/my",{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.json());
   renderMatchHistory(allMatches);
 }
