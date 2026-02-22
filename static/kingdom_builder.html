@@ -172,6 +172,7 @@ input.score-input {
 
 <!-- LEFT PANEL -->
 <div class="left-panel">
+  <form autocomplete="off">
 <h1>Kingdom Builder</h1>
 
 <label>Player count:</label>
@@ -193,6 +194,7 @@ input.score-input {
 <p>Selected players: <b id="playerCountDisplay">0</b></p>
 
 <button id="startGameBtn" disabled>Create Match</button>
+    </form>
 </div>
 
 <!-- RIGHT PANEL -->
@@ -246,6 +248,14 @@ const tasksContainer = tasksContainerDiv = document.getElementById("tasksContain
 const saveScoresBtn = saveScoresBtnEl = document.getElementById("saveScoresBtn");
 
 window.addEventListener("DOMContentLoaded", async () => {
+
+  // UI STATE RESET
+  playerCount.value = "";
+  MAX_PLAYERS = 0;
+  selectedPlayers = [];
+  renderSelectedPlayers();
+  updateStartButton();
+
   await fetchUsers();
   await fetchMyMatches();
 });
