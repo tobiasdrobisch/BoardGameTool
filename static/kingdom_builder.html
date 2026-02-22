@@ -257,6 +257,7 @@ async function fetchUsers(){
 }
 
 async function fetchMyMatches(){
+  console.log("Test fetchmymatches")
   allMatches = await fetch("/matches/my",{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.json());
   renderMatchHistory(allMatches);
 }
@@ -463,7 +464,7 @@ function recalculateTotals(){
 }
 
 /* ================= SAVE SCORES ================= */
-saveScoresBtn.onclick=()=>{
+saveScoresBtn.onclick= async ()=>{
   const table=tasksContainer.querySelector("table");
   const scores={};
 
@@ -483,7 +484,7 @@ saveScoresBtn.onclick=()=>{
     headers:{Authorization:`Bearer ${token}`,"Content-Type":"application/json"},
     body:JSON.stringify({match_id:currentMatch.match_id,scores})
   });
-
+  await fetchMyMatches()
   alert("Scores saved!");
 };
 
