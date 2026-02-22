@@ -21,11 +21,9 @@
 <div>
     <h2>My games</h2>
 
-    <button onclick="addGame('kingdom_builder')">
-        add Kingdom Builder
-    </button>
-
-    <ul id="gameList"></ul>
+    <select id="gameSelect"></select>
+    <button onclick="addSelectedGame()">Add Game</button>
+        <ul id="gameList"></ul>
 </div>
 
 <hr>
@@ -37,6 +35,48 @@
 </div>
 
 <script>
+
+    const allGames = [
+    { key: "kingdom_builder", name: "Kingdom Builder" }
+];
+
+function renderGameDropdown() {
+    const select = document.getElementById("gameSelect");
+    select.innerHTML = "";
+
+    // Nur Spiele anzeigen, die noch nicht hinzugefügt wurden
+    const availableGames = allGames.filter(
+        game => !games.includes(game.key)
+    );
+
+    if (availableGames.length === 0) {
+        const option = document.createElement("option");
+        option.text = "All games added";
+        option.disabled = true;
+        select.appendChild(option);
+        return;
+    }
+
+    availableGames.forEach(game => {
+        const option = document.createElement("option");
+        option.value = game.key;
+        option.text = game.name;
+        select.appendChild(option);
+    });
+}
+
+function addSelectedGame() {
+    const select = document.getElementById("gameSelect");
+    const selectedGame = select.value;
+
+    if (!selectedGame) return;
+
+    games.push(selectedGame);
+    saveGames();
+    renderGames();
+    renderGameDropdown();
+}
+
 const token = localStorage.getItem("token");
 
 // Login-Check
@@ -44,8 +84,14 @@ if (!token) {
     window.location.href = "/static/index.html";
 }
 
-// selected games (local)
-let games = JSON.parse(localStorage.getItem("games")) || [];
+const username = localStorage.getItem("username"); // oder aus /me/
+const gameKey = `games_${username}`;
+
+let games = JSON.parse(localStorage.getItem(gameKey)) || [];
+
+function saveGames() {
+  localStorage.setItem(gameKey, JSON.stringify(games));
+}
 
 // load account
 async function loadAccount() {
@@ -103,8 +149,10 @@ function renderGames() {
 function addGame(gameName) {
     if (!games.includes(gameName)) {
         games.push(gameName);
-        localStorage.setItem("games", JSON.stringify(games));
+        saveGames();
         renderGames();
+        renderGameDropdown();
+        console.log("Button:", document.getElementById('addKingdomBuilder'));
     } else {
         alert("game is already added");
     }
