@@ -21,9 +21,11 @@
 <div>
     <h2>My games</h2>
 
-    <select id="gameSelect"></select>
-    <button onclick="addSelectedGame()">Add Game</button>
-        <ul id="gameList"></ul>
+    <button onclick="addGame('kingdom_builder')">
+        add Kingdom Builder
+    </button>
+
+    <ul id="gameList"></ul>
 </div>
 
 <hr>
@@ -34,70 +36,62 @@
     <button onclick="deleteUser()">Delete User</button>
 </div>
 
-
 <script>
 const token = localStorage.getItem("token");
 
+// Login-Check
 if (!token) {
     window.location.href = "/static/index.html";
 }
 
-let allBoardGames = [];
-let myBoardGames = [];
+// selected games (local)
+let games = JSON.parse(localStorage.getItem("games")) || [];
 
-/* =========================
-   ACCOUNT
-========================= */
-
+// load account
 async function loadAccount() {
-    const res = await fetch("/me/", {
-        headers: { Authorization: "Bearer " + token }
-    });
+    try {
+        console.log("Fetching /me/ with token:", token); // Debug
 
-    if (!res.ok) {
-        localStorage.removeItem("token");
-        window.location.href = "/static/index.html";
-        return;
+        const res = await fetch("/me/", {
+            headers: {
+                "Authorization": "Bearer " + token
+            }
+        });
+
+        console.log("Response status:", res.status); // Debug
+
+        if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            console.error("Error response:", errData);
+            localStorage.removeItem("token");
+            window.location.href = "/static/index.html";
+            return;
+        }
+
+        const data = await res.json();
+        console.log("User data received:", data); // Debug
+
+        document.getElementById("email").innerText = data.email;
+        document.getElementById("username").innerText = data.name;
+    } catch (err) {
+        console.error("Network error /me/:", err);
+        alert("Could not load account: " + err);
     }
-
-    const data = await res.json();
-    document.getElementById("email").innerText = data.email;
-    document.getElementById("username").innerText = data.name;
 }
 
-/* =========================
-   LOAD DATA
-========================= */
 
-async function loadBoardGames() {
-    const res = await fetch("/boardgames");
-    allBoardGames = await res.json();
-}
-
-async function loadMyBoardGames() {
-    const res = await fetch("/users/me/boardgames", {
-        headers: { Authorization: "Bearer " + token }
-    });
-    myBoardGames = await res.json();
-}
-
-/* =========================
-   RENDER
-========================= */
-
-function renderMyGames() {
+// show games
+function renderGames() {
     const list = document.getElementById("gameList");
     list.innerHTML = "";
 
-    myBoardGames.forEach(game => {
+    games.forEach(game => {
         const li = document.createElement("li");
 
         const btn = document.createElement("button");
-        btn.innerText = game.name;
-
-        // Load html of clicked game button
+        btn.innerText = game === "kingdom_builder" ? "Kingdom Builder" : game;
         btn.onclick = () => {
-            window.location.href = `/static/${game.name.toLowerCase().replace(" ", "_")}.html`;
+            window.location.href = `/static/${game}.html`;
         };
 
         li.appendChild(btn);
@@ -105,68 +99,24 @@ function renderMyGames() {
     });
 }
 
-function renderDropdown() {
-    const select = document.getElementById("gameSelect");
-    select.innerHTML = "";
-
-    const myIds = myBoardGames.map(g => g.id);
-
-    const available = allBoardGames.filter(g => !myIds.includes(g.id));
-
-    if (available.length === 0) {
-        const option = document.createElement("option");
-        option.text = "All games added";
-        option.disabled = true;
-        select.appendChild(option);
-        return;
+// Add game
+function addGame(gameName) {
+    if (!games.includes(gameName)) {
+        games.push(gameName);
+        localStorage.setItem("games", JSON.stringify(games));
+        renderGames();
+    } else {
+        alert("game is already added");
     }
-
-    available.forEach(game => {
-        const option = document.createElement("option");
-        option.value = game.id;
-        option.text = game.name;
-        select.appendChild(option);
-    });
 }
 
-/* =========================
-   ADD GAME
-========================= */
-
-async function addSelectedGame() {
-    const select = document.getElementById("gameSelect");
-    const gameId = select.value;
-
-    if (!gameId) return;
-
-    await fetch(`/users/me/boardgames/${gameId}`, {
-        method: "POST",
-        headers: { Authorization: "Bearer " + token }
-    });
-
-    await refreshGames();
-}
-
-/* =========================
-   REFRESH
-========================= */
-
-async function refreshGames() {
-    await loadMyBoardGames();
-    renderMyGames();
-    renderDropdown();
-}
-
-/* =========================
-   DELETE USER
-========================= */
-
+// Delete User
 async function deleteUser() {
     if (!confirm("Do you want to delete your account?")) return;
 
     const res = await fetch(`/users/me/`, {
         method: "DELETE",
-        headers: { Authorization: "Bearer " + token }
+        headers: { "Authorization": `Bearer ${token}` }
     });
 
     if (res.ok) {
@@ -178,19 +128,9 @@ async function deleteUser() {
     }
 }
 
-/* =========================
-   INITIAL LOAD
-========================= */
-
-async function init() {
-    await loadAccount();
-    await loadBoardGames();
-    await loadMyBoardGames();
-    renderMyGames();
-    renderDropdown();
-}
-
-init();
+// Initial
+loadAccount();
+renderGames();
 </script>
 
 </body>
