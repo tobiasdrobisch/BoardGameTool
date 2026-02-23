@@ -155,6 +155,21 @@ input.score-input {
   margin:auto;
   border-radius:10px;
 }
+
+  .match-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+  margin: 15px 0 20px 0;
+}
+
+.match-meta-card {
+  background: #fafafa;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  text-align: center;
+}
 </style>
 </head>
 
@@ -596,24 +611,85 @@ function applyFilters(){
 
 /* ================= MATCH DETAIL MODAL ================= */
 async function showMatchDetails(id){
-  const data = await fetch(`/matches/${id}`,{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.json());
-  const div=document.getElementById("matchDetailContent");
-  div.innerHTML="<h2>Match Details</h2>";
 
-  if(data.map) div.appendChild(renderMap(data.map));
-  div.innerHTML+=`<p><b>Island:</b> ${data.island}</p>
-                  <p><b>Caves:</b> ${data.caves}</p>
-                  <p><b>Capitols:</b> ${data.capitols}</p>`;
+  const data = await fetch(
+    `/matches/${id}`,
+    {headers:{Authorization:`Bearer ${token}`}}
+  ).then(r=>r.json());
 
-  for(let p in data.players){
-    div.innerHTML+=`<h4>${p} (Total: ${data.players[p].total})</h4><ul>`;
-    for(let t in data.players[p].details){
-      div.innerHTML+=`<li>${t}: ${data.players[p].details[t]}</li>`;
-    }
-    div.innerHTML+="</ul>";
+  const div = document.getElementById("matchDetailContent");
+  div.innerHTML = "<h2>Match Details</h2>";
+
+  /* 1. Map Quadranten */
+  if(data.map){
+    div.appendChild(renderMap(data.map));
   }
 
-  matchDetailModal.style.display="block";
+  /* 2. Island / Caves / Capitols nebeneinander */
+  div.innerHTML += `
+    <div class="match-meta-grid">
+      <div class="match-meta-card">
+        <strong>Island</strong>
+        <div>${data.island}</div>
+      </div>
+
+      <div class="match-meta-card">
+        <strong>Caves</strong>
+        <div>${data.caves}</div>
+      </div>
+
+      <div class="match-meta-card">
+        <strong>Capitols</strong>
+        <div>${data.capitols}</div>
+      </div>
+    </div>
+  `;
+
+  /* 3. Score Tabelle */
+  const playersArray = Object.values(data.players);
+
+  if (!playersArray.length) {
+    div.innerHTML += "<p>No scores available.</p>";
+    matchDetailModal.style.display = "block";
+    return;
+  }
+
+  let tableHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th>Task</th>
+  `;
+
+  playersArray.forEach(p=>{
+    tableHTML += `<th>${p.username}</th>`;
+  });
+
+  tableHTML += `
+        </tr>
+      </thead>
+      <tbody>
+  `;
+
+  const taskNames = Object.keys(playersArray[0].details);
+
+  taskNames.forEach(task=>{
+    tableHTML += `<tr><td>${task}</td>`;
+    playersArray.forEach(p=>{
+      tableHTML += `<td>${p.details[task]}</td>`;
+    });
+    tableHTML += `</tr>`;
+  });
+
+  tableHTML += `<tr><td><strong>Total</strong></td>`;
+  playersArray.forEach(p=>{
+    tableHTML += `<td><strong>${p.total}</strong></td>`;
+  });
+  tableHTML += `</tr></tbody></table>`;
+
+  div.innerHTML += tableHTML;
+
+  matchDetailModal.style.display = "block";
 }
 
 function closeMatchDetails(){
