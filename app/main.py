@@ -81,7 +81,9 @@ def root():
 
 @app.get("/dashboard.html")
 def dashboard():
-    return FileResponse("static/dashboard.html")
+    response = FileResponse("static/dashboard.html")
+    response.headers["Cache-Control"] = "no-store"
+    return response
 
 @app.post("/start_kingdom_builder/")
 def start_kingdom_builder(
