@@ -235,6 +235,11 @@ Player name:
 const token = localStorage.getItem("token");
 if (!token) window.location.href="/static/index.html";
 
+
+if (!localStorage.getItem("token")) {
+  window.location.replace("/");
+}
+
 /* ================= GLOBALS ================= */
 let users=[], selectedPlayers=[], currentTasks=[], currentMatch=null, MAX_PLAYERS=0, allMatches=[];
 

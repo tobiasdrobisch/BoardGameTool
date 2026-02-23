@@ -13,6 +13,8 @@
     <h2>Account data</h2>
     <p><b>E-Mail:</b> <span id="email"></span></p>
     <p><b>Username:</b> <span id="username"></span></p>
+    <button onclick="deleteUser()">Delete Account</button>
+    <button onclick="logout()">Logout</button>
 </div>
 
 <hr>
@@ -30,8 +32,7 @@
 
 <!-- Delete User -->
 <div>
-    <h2>Delete User</h2>
-    <button onclick="deleteUser()">Delete User</button>
+    <h2>Delete Account</h2>
 </div>
 
 
@@ -177,6 +178,18 @@ async function deleteUser() {
         alert("Deleting account failed");
     }
 }
+
+
+/* =========================
+   LOGOUT USER
+========================= */
+
+function logout() {
+  localStorage.removeItem("token");
+  localStorage.removeItem("username");
+  window.location.href = "/static/index.html";
+}
+
 
 /* =========================
    INITIAL LOAD
