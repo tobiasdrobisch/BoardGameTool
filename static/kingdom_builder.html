@@ -267,7 +267,6 @@ async function fetchUsers(){
 }
 
 async function fetchMyMatches(){
-  console.log("Test fetchmymatches")
   allMatches = await fetch("/matches/my",{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.json());
   renderMatchHistory(allMatches);
 }
@@ -474,27 +473,53 @@ function recalculateTotals(){
 }
 
 /* ================= SAVE SCORES ================= */
-saveScoresBtn.onclick= async ()=>{
-  const table=tasksContainer.querySelector("table");
-  const scores={};
+saveScoresBtn.onclick = async () => {
 
-  table.querySelectorAll("tbody tr").forEach(row=>{
-    if(row.id==="totalRow") return;
-    const task=row.cells[0].textContent;
-    scores[task]={};
-    selectedPlayers.forEach((p,i)=>{
-      const v=parseInt(row.cells[i+1].querySelector("input").value)||0;
-      scores[task][p]=v;
-      row.cells[i+1].textContent=v;
+  const table = tasksContainer.querySelector("table");
+  const scores = {};
+
+  table.querySelectorAll("tbody tr").forEach(row => {
+
+    if (row.id === "totalRow") return;
+
+    const task = row.cells[0].textContent;
+    scores[task] = {};
+
+    selectedPlayers.forEach((p, i) => {
+      const input = row.cells[i + 1].querySelector("input");
+      const v = parseInt(input.value) || 0;
+      scores[task][p] = v;
     });
   });
 
-  fetch("/matches/scores/",{
-    method:"POST",
-    headers:{Authorization:`Bearer ${token}`,"Content-Type":"application/json"},
-    body:JSON.stringify({match_id:currentMatch.match_id,scores})
+  const res = await fetch("/matches/scores/", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      match_id: currentMatch.match_id,
+      scores
+    })
   });
-  await fetchMyMatches()
+
+  if (!res.ok) {
+    alert("Save failed");
+    return;
+  }
+
+  // deactivate button
+  saveScoresBtn.disabled = true;
+  saveScoresBtn.classList.remove("enabled");
+
+  // deactivate input
+  table.querySelectorAll("input").forEach(inp => {
+    inp.disabled = true;
+  });
+
+  await fetchMyMatches();
+
   alert("Scores saved!");
 };
 
