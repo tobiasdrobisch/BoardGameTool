@@ -440,10 +440,26 @@ function renderTasks(){
     selectedPlayers.forEach(()=>{
       const td = document.createElement("td");
       const inp = document.createElement("input");
-      inp.type = "number";
-      inp.value = 0;
-      inp.className = "score-input";
-      inp.oninput = recalculateTotals;
+inp.type = "text";
+inp.value = "0";
+inp.className = "score-input";
+
+/* Input filtering during typing */
+inp.addEventListener("input", () => {
+  let value = inp.value;
+  value = value.replace(/[^0-9]/g, "");
+  inp.value = value;
+});
+
+/* empty string => 0 */
+inp.addEventListener("blur", () => {
+  if (inp.value === "") {
+    inp.value = "0";
+  }
+});
+
+inp.addEventListener("input", recalculateTotals);
+
       td.appendChild(inp);
       tr.appendChild(td);
     });
