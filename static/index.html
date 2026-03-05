@@ -30,43 +30,41 @@
     let token = localStorage.getItem("token") || "";
 
     async function login() {
-        const username = document.getElementById("loginUsername").value.trim();
-        const password = document.getElementById("loginPassword").value;
+    const username = document.getElementById("loginUsername").value.trim();
+    const password = document.getElementById("loginPassword").value;
 
-        if (!username || !password) {
-            alert("Please enter username and password");
+    if (!username || !password) {
+        alert("Please enter username and password");
+        return;
+    }
+
+    try {
+        const response = await fetch("/login", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded"
+            },
+            body: new URLSearchParams({
+                username: username,
+                password: password
+            })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            alert(data.detail || "Login failed");
             return;
         }
 
-        try {
-            const response = await fetch("/login/", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json"
-  },
-  body: JSON.stringify({
-    username: username,
-    password: password
-  })
-});
+        localStorage.setItem("token", data.access_token);
+        window.location.href = "/dashboard.html";
 
-            const data = await response.json();
-
-            if (!response.ok) {
-                alert(data.detail || "Login failed");
-                return;
-            }
-
-            localStorage.setItem("token", data.access_token);
-            token = data.access_token;
-
-            window.location.href = "/dashboard.html";
-
-        } catch (error) {
-            console.error(error);
-            alert("Server not available");
-        }
+    } catch (error) {
+        console.error(error);
+        alert("Server not available");
     }
+}
 
     async function register() {
         const email = document.getElementById("regEmail").value;

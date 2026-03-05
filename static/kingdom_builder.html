@@ -77,11 +77,11 @@ button {
   background:#007bff;
   color:white;
   cursor:pointer;
-  opacity:.5;
 }
 
-button.enabled {
-  opacity:1;
+button:disabled {
+  opacity:.5;
+  cursor:not-allowed;
 }
 
 button:hover { background:#0056b3; }
@@ -257,6 +257,7 @@ if (!localStorage.getItem("token")) {
 
 /* ================= GLOBALS ================= */
 let users=[], selectedPlayers=[], currentTasks=[], currentMatch=null, MAX_PLAYERS=0, allMatches=[];
+let editingMatchId = null;
 
 const input = playerInput;
 const suggestions = document.getElementById("suggestions");
@@ -283,7 +284,7 @@ window.addEventListener("DOMContentLoaded", async () => {
 
 /* ================= API LOAD ================= */
 async function fetchUsers(){
-  users = await fetch("/users/",{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.json());
+  users = await fetch("/users",{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.json());
 }
 
 async function fetchMyMatches(){
@@ -344,7 +345,6 @@ function renderSelectedPlayers(){
 
 function updateStartButton(){
   startBtn.disabled = !(selectedPlayers.length===MAX_PLAYERS && MAX_PLAYERS>0);
-  startBtn.classList.toggle("enabled", !startBtn.disabled);
 }
 
 /* ================= START MATCH ================= */
@@ -353,7 +353,7 @@ startBtn.onclick = async ()=>{
     startBtn.disabled = true;
 
   try {
-    const res = await fetch("/start_kingdom_builder/",{
+    const res = await fetch("/start_kingdom_builder",{
       method:"POST",
       headers:{
         Authorization:`Bearer ${token}`,
@@ -486,7 +486,6 @@ inp.addEventListener("input", recalculateTotals);
   tasksContainer.appendChild(table);
 
   saveScoresBtn.disabled = false;
-  saveScoresBtn.classList.add("enabled");
 }
 
 
@@ -528,14 +527,13 @@ saveScoresBtn.onclick = async () => {
     });
   });
 
-  const res = await fetch("/matches/scores/", {
-    method: "POST",
+  const res = await fetch(`/matches/${currentMatch.match_id}/scores`, {
+  method: "PATCH",
     headers: {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      match_id: currentMatch.match_id,
       scores
     })
   });
@@ -547,7 +545,6 @@ saveScoresBtn.onclick = async () => {
 
   // deactivate button
   saveScoresBtn.disabled = true;
-  saveScoresBtn.classList.remove("enabled");
 
   // deactivate input
   table.querySelectorAll("input").forEach(inp => {
@@ -555,7 +552,6 @@ saveScoresBtn.onclick = async () => {
   });
 
   await fetchMyMatches();
-
   alert("Scores saved!");
 };
 
@@ -628,88 +624,244 @@ function applyFilters(){
 /* ================= MATCH DETAIL MODAL ================= */
 async function showMatchDetails(id){
 
+ editingMatchId = id;
+
   const data = await fetch(
     `/matches/${id}`,
     {headers:{Authorization:`Bearer ${token}`}}
   ).then(r=>r.json());
 
   const div = document.getElementById("matchDetailContent");
-  div.innerHTML = "<h2>Match Details</h2>";
+  div.innerHTML = ""; // total reset
 
-  /* 1. Map Quadranten */
+  /* ================= TITLE ================= */
+  const title = document.createElement("h2");
+  title.textContent = "Match Details";
+  div.appendChild(title);
+
+  /* ================= EDIT BUTTON ================= */
+  const editBtn = document.createElement("button");
+  editBtn.textContent = "✏️ Edit Scores";
+  editBtn.addEventListener("click", () => enableEditMode(id, data));
+  div.appendChild(editBtn);
+
+  /* ================= MAP ================= */
   if(data.map){
-    div.appendChild(renderMap(data.map));
+    const mapElement = renderMap(data.map);
+    div.appendChild(mapElement);
   }
 
-  /* 2. Island / Caves / Capitols nebeneinander */
-  div.innerHTML += `
-    <div class="match-meta-grid">
-      <div class="match-meta-card">
-        <strong>Island</strong>
-        <div>${data.island}</div>
-      </div>
+  /* ================= META GRID ================= */
+  const metaWrapper = document.createElement("div");
+  metaWrapper.className = "match-meta-grid";
+  metaWrapper.innerHTML = `
+    <div class="match-meta-card">
+      <strong>Island</strong>
+      <div>${data.island}</div>
+    </div>
 
-      <div class="match-meta-card">
-        <strong>Caves</strong>
-        <div>${data.caves}</div>
-      </div>
+    <div class="match-meta-card">
+      <strong>Caves</strong>
+      <div>${data.caves}</div>
+    </div>
 
-      <div class="match-meta-card">
-        <strong>Capitols</strong>
-        <div>${data.capitols}</div>
-      </div>
+    <div class="match-meta-card">
+      <strong>Capitols</strong>
+      <div>${data.capitols}</div>
     </div>
   `;
+  div.appendChild(metaWrapper);
 
-  /* 3. Score Tabelle */
+  /* ================= SCORE TABLE ================= */
   const playersArray = Object.values(data.players);
 
   if (!playersArray.length) {
-    div.innerHTML += "<p>No scores available.</p>";
+    const noData = document.createElement("p");
+    noData.textContent = "No scores available.";
+    div.appendChild(noData);
     matchDetailModal.style.display = "block";
     return;
   }
 
-  let tableHTML = `
-    <table>
-      <thead>
-        <tr>
-          <th>Task</th>
-  `;
+  const table = document.createElement("table");
+
+  // THEAD
+  const thead = document.createElement("thead");
+  const headerRow = document.createElement("tr");
+
+  const thTask = document.createElement("th");
+  thTask.textContent = "Task";
+  headerRow.appendChild(thTask);
 
   playersArray.forEach(p=>{
-    tableHTML += `<th>${p.username}</th>`;
+    const th = document.createElement("th");
+    th.textContent = p.username;
+    headerRow.appendChild(th);
   });
 
-  tableHTML += `
-        </tr>
-      </thead>
-      <tbody>
-  `;
+  thead.appendChild(headerRow);
+  table.appendChild(thead);
+
+  // TBODY
+  const tbody = document.createElement("tbody");
 
   const taskNames = Object.keys(playersArray[0].details);
 
   taskNames.forEach(task=>{
-    tableHTML += `<tr><td>${task}</td>`;
+    const tr = document.createElement("tr");
+
+    const tdTask = document.createElement("td");
+    tdTask.textContent = task;
+    tr.appendChild(tdTask);
+
     playersArray.forEach(p=>{
-      tableHTML += `<td>${p.details[task]}</td>`;
+      const td = document.createElement("td");
+      td.textContent = p.details[task];
+      tr.appendChild(td);
     });
-    tableHTML += `</tr>`;
+
+    tbody.appendChild(tr);
   });
 
-  tableHTML += `<tr><td><strong>Total</strong></td>`;
+  // TOTAL ROW
+  const totalRow = document.createElement("tr");
+
+  const tdTotalLabel = document.createElement("td");
+  tdTotalLabel.innerHTML = "<strong>Total</strong>";
+  totalRow.appendChild(tdTotalLabel);
+
   playersArray.forEach(p=>{
-    tableHTML += `<td><strong>${p.total}</strong></td>`;
+    const td = document.createElement("td");
+    td.innerHTML = `<strong>${p.total}</strong>`;
+    totalRow.appendChild(td);
   });
-  tableHTML += `</tr></tbody></table>`;
 
-  div.innerHTML += tableHTML;
+  tbody.appendChild(totalRow);
+  table.appendChild(tbody);
+
+  div.appendChild(table);
 
   matchDetailModal.style.display = "block";
 }
 
 function closeMatchDetails(){
   matchDetailModal.style.display="none";
+}
+
+
+  function enableEditMode(matchId, data){
+
+  editingMatchId = matchId;
+
+  const div = document.getElementById("matchDetailContent");
+
+  const playersArray = Object.values(data.players);
+
+  if(!playersArray.length){
+    alert("No players found");
+    return;
+  }
+
+  const taskNames = Object.keys(playersArray[0].details);
+
+  let html = `<table>
+    <thead>
+      <tr>
+        <th>Task</th>`;
+
+  playersArray.forEach(p=>{
+    html += `<th>${p.username}</th>`;
+  });
+
+  html += `</tr></thead><tbody>`;
+
+  taskNames.forEach(task=>{
+    html += `<tr><td>${task}</td>`;
+
+    playersArray.forEach(p=>{
+      html += `
+        <td>
+          <input type="number"
+                 value="${p.details[task]}"
+          >
+        </td>`;
+    });
+
+    html += `</tr>`;
+  });
+
+  html += `
+    </tbody>
+  </table>
+
+  <button id="saveEditedScoresBtn">
+    💾 Save Changes
+  </button>`;
+
+  div.innerHTML = html;
+
+  document.getElementById("saveEditedScoresBtn")
+    .onclick = saveEditedScores;
+}
+
+
+  async function saveEditedScores(){
+
+  const matchId = editingMatchId;
+
+  if(!matchId){
+    alert("Match ID missing");
+    return;
+  }
+
+  const table = document.querySelector("#matchDetailContent table");
+  if(!table){
+    alert("Table missing");
+    return;
+  }
+
+  const rows = table.querySelectorAll("tbody tr");
+
+  const scores = {};
+
+  rows.forEach(row=>{
+    const task = row.cells[0].textContent;
+    scores[task] = {};
+
+    const inputs = row.querySelectorAll("input");
+
+    inputs.forEach((input,i)=>{
+      const username = table.querySelector("thead tr")
+                            .cells[i+1]
+                            .textContent;
+
+      scores[task][username] = parseInt(input.value) || 0;
+    });
+  });
+
+  const res = await fetch(`/matches/${matchId}/scores`, {
+  method:"PATCH",
+  headers:{
+    Authorization:`Bearer ${token}`,
+    "Content-Type":"application/json"
+  },
+  body: JSON.stringify({
+    scores: scores
+  })
+});
+
+  if(!res.ok){
+    alert("Update failed");
+    return;
+  }
+
+  alert("Scores updated!");
+
+await fetchMyMatches();
+  console.log(matchId)
+  console.log(allMatches)
+
+await showMatchDetails(matchId);
 }
 </script>
 
