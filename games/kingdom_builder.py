@@ -1,8 +1,6 @@
 import random
 import datetime
 
-
-
 setup_guide = ""
 
 
@@ -19,14 +17,33 @@ def select_map_tiles():
     return map
 
 
-def select_tasks(map):
+
+def select_tasks(map, island, number_of_capitols):
+
+    tasks = random.sample(TASKS, 3)
+
     number_of_crossroad_tasks = 0
+    number_of_castles = 0
+    number_of_palaces = 0
+
+    if island:
+        number_of_castles += 1
+
     for map_tile in map:
         if map_tile[1] == "C":
             number_of_crossroad_tasks += 1
+        number_of_palaces += map_tile[4]
+        number_of_castles += map_tile[3]
+
     crossroad_tasks = random.sample(CROSSROAD_TASKS, number_of_crossroad_tasks)
-    tasks = random.sample(TASKS, 3)
     tasks = tasks + crossroad_tasks
+
+    if "Noblewomen" not in tasks and number_of_palaces > 0:
+        tasks += ["Palaces"]
+    if number_of_castles - number_of_capitols > 0:
+        tasks += ["Castles"]
+    if number_of_capitols > 0 and number_of_castles > 0:
+        tasks += ["Capitols"]
     return tasks
 
 def nomads_expansion():
@@ -46,15 +63,15 @@ def island_queenie():
 
 #TODO: get random number for map tile position of each cave
 def caves_queenie():
-        return 'caves'
+        return 'Caves'
 
 #TODO: get random number(s) for capitol(s)
 def capitols_queenie():
     both_capitols = random.choice([True, False])
     if both_capitols:
-        return 'both capitols'
+        return 2
     else:
-        return 'one capitol'
+        return 1
 
 
 #fyi: Lords excluded
@@ -62,32 +79,32 @@ TASKS = ["Fishermen", "Miners", "Merchants", "Workers", "Discoverer", "Knights",
 CROSSROAD_TASKS = ["Home Country", "Place of Refuge", "Fortress", "Advance", "Road", "Compass Points"]
 
 
-# [ID, "expansion", "title", # (placeholder), castles, palaces, Silos, Mountain Caves]
+# [ID, "expansion", "title", castles, palaces, Silos, Mountain Caves]
 MAP_TILES = [
-    [1, "KB", "Oracle"], #, 2, 0, 0, 2
-    [2, "KB", "Harbor"], #, 2, 0, 0, 1
-    [3, "KB", "Oasis"], # , 1, 0, 0, 0
-    [4, "KB", "Paddock"], #, 1, 0, 0, 13
-    [5, "KB", "Barn"], #, 1, 0, 0, 9
-    [6, "KB", "Tower"], #, 1, 0, 0, 9
-    [7, "KB", "Farm"],#, 1, 0, 0, 2
-    [8, "KB", "Tavern"], #, 1, 0, 0, 9
-    [9, "N", "Quarry"],#, 0, 0, 0, 3
-    [10, "N", "Village"], #, 0, 0, 0, 4
-    [11, "N", "Garden"], #, 0, 0, 0, 5
-    [12, "N", "Caravan"], #, 0, 0, 0, 1
-    [13, "C", "Lighthouse"], #, 1, 0, 0, 3
-    [14, "C", "Fort"], # , 1, 0, 0, 6
-    [15, "C", "Wagon"], #, 1, 0, 0, 6
-    [16, "C", "Crossroads"], #, 1, 0, 0, 1
-    [17, "H", "Watchtower"], #, 0, 0, 1, 1
-    [18, "H", "Scout Cabin"], #, 1, 0, 1, 2
-    [19, "H", "Water Mill"], #, 0, 0, 1, 6
-    [20, "H", "Palisade"], #, 0, 0, 1, 3
-    [21, "M", "Refuge"], #, 0, 1, 0, 6
-    [22, "M", "Temple"], #, 0, 1, 0, 1
-    [23, "M", "Fountain"],#, 0, 1, 0, 2
-    [24, "M", "Canoe"], #, 0, 1, 0, 7
+    [1, "KB", "Oracle", 2, 0, 0, 2],
+    [2, "KB", "Harbor", 2, 0, 0, 1],
+    [3, "KB", "Oasis", 1, 0, 0, 0],
+    [4, "KB", "Paddock", 1, 0, 0, 13],
+    [5, "KB", "Barn", 1, 0, 0, 9],
+    [6, "KB", "Tower", 1, 0, 0, 9],
+    [7, "KB", "Farm", 1, 0, 0, 2],
+    [8, "KB", "Tavern", 1, 0, 0, 9],
+    [9, "N", "Quarry", 0, 0, 0, 3],
+    [10, "N", "Village", 0, 0, 0, 4],
+    [11, "N", "Garden", 0, 0, 0, 5],
+    [12, "N", "Caravan", 0, 0, 0, 1],
+    [13, "C", "Lighthouse", 1, 0, 0, 3],
+    [14, "C", "Fort", 1, 0, 0, 6],
+    [15, "C", "Wagon", 1, 0, 0, 6],
+    [16, "C", "Crossroads", 1, 0, 0, 1],
+    [17, "H", "Watchtower", 0, 0, 1, 1],
+    [18, "H", "Scout Cabin", 1, 0, 1, 2],
+    [19, "H", "Water Mill", 0, 0, 1, 6],
+    [20, "H", "Palisade", 0, 0, 1, 3],
+    [21, "M", "Refuge", 0, 1, 0, 6],
+    [22, "M", "Temple", 0, 1, 0, 1],
+    [23, "M", "Fountain", 0, 1, 0, 2],
+    [24, "M", "Canoe", 0, 1, 0, 7]
 ]
 
 def create_match():
@@ -95,30 +112,31 @@ def create_match():
     output = datetime.datetime.today()
     output = output.strftime("%x")+ "\n"
 
+    # Queenies
+    island = 0
+    caves = 0
+    capitols = 0
+
+    #   Island (Queenie 3)
+    if random.choice([True, False]):
+        island = island_queenie()
+        #output += island + "\n"
+    #   Caves (Queenie 2)
+    if random.choice([True, False]):
+        caves = caves_queenie()
+        #output += str(caves) + "\n"
+    #   Capitol (Queenie 1)
+    if random.choice([True, False]):
+        capitols = capitols_queenie()
+        #output += str(capitols) + "\n"
 
     # map
     map = select_map_tiles()
 
     # tasks
-    tasks = select_tasks(map)
+    tasks = select_tasks(map, island, capitols)
 
-    # Queenies
-    island = "No"
-    caves = "No"
-    capitols = "No"
 
-    #   Island (Queenie 3)
-    if random.choice([True, False]):
-        island = island_queenie()
-        output += island + "\n"
-    #   Caves (Queenie 2)
-    if random.choice([True, False]):
-        caves = caves_queenie()
-        output += caves + "\n"
-    #   Capitol (Queenie 1)
-    if random.choice([True, False]):
-        capitols = capitols_queenie()
-        output += capitols + "\n"
 
     output += str(map) + "\n"
     output += str(tasks) + "\n"
@@ -129,7 +147,7 @@ def create_match():
         "board_game_id": 1,
         "map": map,
         "tasks": tasks,
-        "island": island,
-        "caves": caves,
-        "capitols": capitols
+        "island": str(island),
+        "caves": str(caves),
+        "capitols": str(capitols)
     }
