@@ -386,9 +386,10 @@ function renderMatchSettings(m){
 }
 
 function renderMap(map){
+  console.log(map)
   const grid=document.createElement("div");
   grid.className="map-grid";
-  map.forEach(([id,exp,name,ori])=>{
+  map.forEach(([id,exp,name, , , , , ori])=>{
     const d=document.createElement("div");
     d.className="map-tile";
     d.innerHTML=`<div class="map-title">${name}</div>
