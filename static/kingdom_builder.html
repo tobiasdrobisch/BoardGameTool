@@ -5,11 +5,24 @@
 <title>Kingdom Builder Tool</title>
 
 <style>
+
+  #language-switcher {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+}
+
 /* ===== GENERAL ===== */
 body {
   font-family: Arial, sans-serif;
   padding: 20px;
   background:#f5f5f5;
+}
+
+/* Hidden state for elements before match creation */
+/* Using class instead of inline style is cleaner */
+.hidden {
+  display: none;
 }
 
 h1,h3 { margin-top:0 }
@@ -174,11 +187,15 @@ input.score-input {
 </head>
 
 <body>
+<div id="language-switcher">
+    <button onclick="loadLanguage('de')">DE</button>
+    <button onclick="loadLanguage('en')">EN</button>
+</div>
 
 <!-- MATCH DETAIL MODAL -->
 <div id="matchDetailModal">
   <div id="matchDetailBox">
-    <button onclick="closeMatchDetails()">Close</button>
+    <button onclick="closeMatchDetails()" data-i18n="close"></button>
     <div id="matchDetailContent"></div>
   </div>
 </div>
@@ -190,36 +207,41 @@ input.score-input {
   <form autocomplete="off">
 <h1>Kingdom Builder</h1>
 
-<label>Player count:</label>
+<label data-i18n="player_count"></label>
+
 <select id="playerCount">
-  <option value="">Select players</option>
-  <option value="2">2 Players</option>
-  <option value="3">3 Players</option>
-  <option value="4">4 Players</option>
-  <option value="5">5 Players</option>
+  <option value="" data-i18n="select_players"></option>
+
+  <option value="2" data-i18n="players_count" data-count="2"></option>
+  <option value="3" data-i18n="players_count" data-count="3"></option>
+  <option value="4" data-i18n="players_count" data-count="4"></option>
+  <option value="5" data-i18n="players_count" data-count="5"></option>
 </select>
 
-<h3>Select players</h3>
+<h3 data-i18n="select_players"></h3>
 <div id="playerInputContainer">
-  <input id="playerInput" placeholder="Enter player name..." disabled>
+  <input id="playerInput" data-i18n-placeholder="enter_player_name" disabled>
   <div id="suggestions"></div>
 </div>
 
 <div id="selectedPlayers"></div>
-<p>Selected players: <b id="playerCountDisplay">0</b></p>
+<p data-i18n="selected_players">: <b id="playerCountDisplay">0</b></p>
 
-<button id="startGameBtn" disabled>Create Match</button>
+<button id="startGameBtn" disabled data-i18n="create_match"></button>
     </form>
 </div>
 
 <!-- RIGHT PANEL -->
 <div class="right-panel">
-<h3>Match Settings</h3>
-<div id="matchSettings">No match created yet.</div>
+<h3 data-i18n="match_settings"></h3>
+<div id="matchSettings" data-i18n="no_match_created_yet"></div>
 
-<h3>Tasks & Scores</h3>
+<h3 id="tasks_and_scores" data-i18n="tasks_scores" class="hidden"></h3>
 <div id="tasksContainer"></div>
-<button id="saveScoresBtn" disabled>Save Scores</button>
+<button id="saveScoresBtn"
+        class="hidden"
+        data-i18n="save_scores">
+</button>
 </div>
 
 </div>
@@ -227,24 +249,30 @@ input.score-input {
 <hr>
 
 <!-- MATCH HISTORY -->
-<h3>Played Matches</h3>
+<h3 data-i18n="played_matches"></h3>
 
 <div id="matchFilters">
-Player count:
+
+<label data-i18n="player_count"></label>
+
 <select id="filterPlayerCount">
-  <option value="">All</option>
-  <option value="2">2</option>
-  <option value="3">3</option>
-  <option value="4">4</option>
-  <option value="5">5</option>
+  <option value="" data-i18n="all"></option>
+
+  <option value="2" data-i18n="players_count" data-count="2"></option>
+  <option value="3" data-i18n="players_count" data-count="3"></option>
+  <option value="4" data-i18n="players_count" data-count="4"></option>
+  <option value="5" data-i18n="players_count" data-count="5"></option>
 </select>
 
-Player name:
-<input id="filterPlayerName" placeholder="Enter name...">
+<label data-i18n="player_name"></label>
+
+<input id="filterPlayerName" data-i18n-placeholder="enter_name">
+
 </div>
 
 <div id="matchHistory"></div>
 
+<script src="/script/i18n.js"></script>
 <script>
 /* ================= AUTH ================= */
 const token = localStorage.getItem("token");
@@ -275,6 +303,7 @@ window.addEventListener("DOMContentLoaded", async () => {
   MAX_PLAYERS = 0;
   selectedPlayers = [];
   renderSelectedPlayers();
+  saveScoresBtn.classList.add("hidden");
   updateStartButton();
 
   await fetchUsers();
@@ -348,28 +377,44 @@ function updateStartButton(){
 }
 
 /* ================= START MATCH ================= */
-startBtn.onclick = async ()=>{
+startBtn.onclick = async () => {
+
   if(startBtn.disabled) return;
-    startBtn.disabled = true;
+
+  startBtn.disabled = true;
 
   try {
-    const res = await fetch("/start_kingdom_builder",{
-      method:"POST",
-      headers:{
-        Authorization:`Bearer ${token}`,
-        "Content-Type":"application/json"
+
+    const res = await fetch("/start_kingdom_builder", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json"
       },
-    body:JSON.stringify(selectedPlayers)
+      body: JSON.stringify(selectedPlayers)
     });
 
-  currentMatch = await res.json();
-  if(!res.ok){ alert(JSON.stringify(currentMatch)); return; }
+    currentMatch = await res.json();
 
-  renderMatchSettings(currentMatch);
-  currentTasks = currentMatch.tasks;
-  renderTasks();
+    if(!res.ok){
+      alert(JSON.stringify(currentMatch));
+      return;
+    }
 
-  await fetchMyMatches();
+    /* Match was successfully created */
+    /* Show scoring UI now */
+    renderMatchSettings(currentMatch);
+    currentTasks = currentMatch.tasks;
+
+    renderTasks();
+
+    /* IMPORTANT */
+    /* Reveal save button after match creation */
+    saveScoresBtn.classList.remove("hidden");
+    tasks_and_scores.classList.remove("hidden");
+
+    await fetchMyMatches();
+
   } finally {
     startBtn.disabled = false;
   }
@@ -377,14 +422,26 @@ startBtn.onclick = async ()=>{
 
 /* ================= MAP & SETTINGS ================= */
 function renderMatchSettings(m){
-  matchSettingsDiv.innerHTML="";
-  matchSettingsDiv.appendChild(renderMap(m.map));
-  matchSettingsDiv.innerHTML += `
-    <p><b>Island:</b> ${m.island}</p>
-    <p><b>Caves:</b> ${m.caves}</p>
-    <p><b>Capitols:</b> ${m.capitols}</p>`;
-}
+  matchSettingsDiv.innerHTML = "";
 
+  // Map-Grid
+  matchSettingsDiv.appendChild(renderMap(m.map));
+
+  // Info-fields
+  const infoFields = [
+    { label: t("island"), value: m.island },
+    { label: t("caves"), value: m.caves },
+    { label: t("capitols"), value: m.capitols }
+  ];
+
+  infoFields.forEach(field => {
+    // translate only strings. if int keep it int
+    const value = typeof field.value === "string" ? t(field.value) : field.value;
+    const p = document.createElement("p");
+    p.innerHTML = `<b>${field.label}:</b> ${value}`;
+    matchSettingsDiv.appendChild(p);
+  });
+}
 function renderMap(map){
   console.log(map)
   const grid=document.createElement("div");
@@ -392,8 +449,8 @@ function renderMap(map){
   map.forEach(([id,exp,name, , , , , ori])=>{
     const d=document.createElement("div");
     d.className="map-tile";
-    d.innerHTML=`<div class="map-title">${name}</div>
-                 <div class="map-meta">${exp} · ${ori==="upright"?"↑ upright":"↺ reversed"}</div>`;
+    d.innerHTML=`<div class="map-title">${t(name)}</div>
+                 <div class="map-meta">${exp} · ${ori==="upright"?t("upright"):t("reversed")}</div>`;
     grid.appendChild(d);
   });
   return grid;
@@ -401,9 +458,12 @@ function renderMap(map){
 
 /* ================= TASK TABLE ================= */
 function renderTasks(){
-  tasksContainer.innerHTML="";
-  if(!currentTasks?.length){
-    tasksContainer.textContent="No tasks available";
+  tasksContainer.innerHTML = "";
+
+  if(!currentTasks?.length || !currentMatch){
+    // no current match created
+    tasksContainer.textContent = t("no_match_created_yet");
+    saveScoresBtn.classList.add("hidden");
     return;
   }
 
@@ -414,7 +474,7 @@ function renderTasks(){
   const hr = document.createElement("tr");
 
   const thTask = document.createElement("th");
-  thTask.textContent = "Task";
+  thTask.textContent = t("task");
   hr.appendChild(thTask);
 
   selectedPlayers.forEach(p=>{
@@ -432,34 +492,33 @@ function renderTasks(){
   currentTasks.forEach(task=>{
     const tr = document.createElement("tr");
 
-    // Task name cell
+    // Task name cell (übersetzt)
     const tdTask = document.createElement("td");
-    tdTask.textContent = task.name; // SAFE
+    tdTask.textContent = t(task.name);
     tr.appendChild(tdTask);
 
     // Player score inputs
     selectedPlayers.forEach(()=>{
       const td = document.createElement("td");
+
       const inp = document.createElement("input");
-inp.type = "text";
-inp.value = "0";
-inp.className = "score-input";
+      inp.type = "text";
+      inp.value = "0";
+      inp.className = "score-input";
 
-/* Input filtering during typing */
-inp.addEventListener("input", () => {
-  let value = inp.value;
-  value = value.replace(/[^0-9]/g, "");
-  inp.value = value;
-});
+      // Input filtering
+      inp.addEventListener("input", () => {
+        let value = inp.value;
+        value = value.replace(/[^0-9]/g, "");
+        inp.value = value;
+      });
 
-/* empty string => 0 */
-inp.addEventListener("blur", () => {
-  if (inp.value === "") {
-    inp.value = "0";
-  }
-});
+      // empty => 0
+      inp.addEventListener("blur", () => {
+        if (inp.value === "") inp.value = "0";
+      });
 
-inp.addEventListener("input", recalculateTotals);
+      inp.addEventListener("input", recalculateTotals);
 
       td.appendChild(inp);
       tr.appendChild(td);
@@ -473,7 +532,7 @@ inp.addEventListener("input", recalculateTotals);
   totalRow.id = "totalRow";
 
   const tdTotal = document.createElement("td");
-  tdTotal.innerHTML = "<b>Total</b>";
+  tdTotal.innerHTML = `<b>${t("total")}</b>`;
   totalRow.appendChild(tdTotal);
 
   selectedPlayers.forEach(()=>{
@@ -486,6 +545,7 @@ inp.addEventListener("input", recalculateTotals);
   table.appendChild(tbody);
   tasksContainer.appendChild(table);
 
+  // Erst jetzt Save Button aktivieren
   saveScoresBtn.disabled = false;
 }
 
@@ -558,52 +618,81 @@ saveScoresBtn.onclick = async () => {
 
 /* ================= MATCH HISTORY ================= */
 function renderMatchHistory(matches){
-  const container=document.getElementById("matchHistory");
-  container.innerHTML="";
-  if(!matches.length){ container.textContent="No matches yet"; return; }
+  const container = document.getElementById("matchHistory");
+  container.innerHTML = "";
+
+  if(!matches.length){
+    container.textContent = t("no_matches_yet");
+    return;
+  }
 
   matches.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at))
 
-  const table=document.createElement("table");
-  table.innerHTML="<thead><tr><th>Date</th><th>Players</th><th>Scores</th><th>Details</th></tr></thead>";
-  const tbody=document.createElement("tbody");
+  const table = document.createElement("table");
 
-matches.forEach(m => {
-  const tr = document.createElement("tr");
+  const thead = document.createElement("thead");
+  const headerRow = document.createElement("tr");
 
-  const tdDate = document.createElement("td");
-  tdDate.textContent = m.date;
+  const thDate = document.createElement("th");
+  thDate.innerText = t("date");
 
-  const tdCount = document.createElement("td");
-  tdCount.textContent = m.player_count;
+  const thPlayers = document.createElement("th");
+  thPlayers.innerText = t("players");
 
+  const thScores = document.createElement("th");
+  thScores.innerText = t("scores");
 
-  const tdScores = document.createElement("td");
-  const scoresArray = Object.values(m.scores);
-  const max = Math.max(...scoresArray.map(s => s.score));
+  const thDetails = document.createElement("th");
+  thDetails.innerText = t("details");
 
-scoresArray.forEach((s, i) => {
-  // create single element, <b> if score == max, else <span>
-  const element = document.createElement(s.score === max ? "b" : "span");
-  element.textContent = `${s.username}:${s.score}`;
+  headerRow.append(thDate, thPlayers, thScores, thDetails);
+  thead.appendChild(headerRow);
+  table.appendChild(thead);
 
-  tdScores.appendChild(element);
+  const tbody = document.createElement("tbody");
 
-  // "|"- symbol only between elements
-  if (i < scoresArray.length - 1) {
-    tdScores.appendChild(document.createTextNode(" | "));
-  }
-});
+  matches.forEach(m => {
 
-  const tdBtn = document.createElement("td");
-  const btn = document.createElement("button");
-  btn.textContent = "🔍";
-  btn.addEventListener("click", () => showMatchDetails(m.match_id));
-  tdBtn.appendChild(btn);
+    const tr = document.createElement("tr");
 
-  tr.append(tdDate, tdCount, tdScores, tdBtn);
-  tbody.appendChild(tr);
-});
+    const tdDate = document.createElement("td");
+    tdDate.textContent = m.date;
+
+    const tdCount = document.createElement("td");
+    tdCount.textContent = m.player_count;
+
+    const tdScores = document.createElement("td");
+    const scoresArray = Object.values(m.scores);
+    const max = Math.max(...scoresArray.map(s => s.score));
+
+    scoresArray.forEach((s, i) => {
+
+      const element = document.createElement(
+        s.score === max ? "b" : "span"
+      );
+
+      element.textContent = `${s.username}:${s.score}`;
+      tdScores.appendChild(element);
+
+      if (i < scoresArray.length - 1) {
+        tdScores.appendChild(document.createTextNode(" | "));
+      }
+    });
+
+    const tdBtn = document.createElement("td");
+    const btn = document.createElement("button");
+
+    btn.textContent = "🔍";
+    btn.title = t("show_details");
+
+    btn.addEventListener("click", () => showMatchDetails(m.match_id));
+
+    tdBtn.appendChild(btn);
+
+    tr.append(tdDate, tdCount, tdScores, tdBtn);
+    tbody.appendChild(tr);
+
+  });
 
   table.appendChild(tbody);
   container.appendChild(table);
@@ -625,7 +714,7 @@ function applyFilters(){
 /* ================= MATCH DETAIL MODAL ================= */
 async function showMatchDetails(id){
 
- editingMatchId = id;
+  editingMatchId = id;
 
   const data = await fetch(
     `/matches/${id}`,
@@ -633,52 +722,60 @@ async function showMatchDetails(id){
   ).then(r=>r.json());
 
   const div = document.getElementById("matchDetailContent");
-  div.innerHTML = ""; // total reset
+  div.innerHTML = "";
 
-  /* ================= TITLE ================= */
+  /* TITLE */
+
   const title = document.createElement("h2");
-  title.textContent = "Match Details";
+  title.textContent = t("match_settings");
   div.appendChild(title);
 
-  /* ================= EDIT BUTTON ================= */
+  /* EDIT BUTTON */
+
   const editBtn = document.createElement("button");
-  editBtn.textContent = "✏️ Edit Scores";
+  editBtn.textContent = `✏️ ${t("edit_scores")}`;
   editBtn.addEventListener("click", () => enableEditMode(id, data));
   div.appendChild(editBtn);
 
-  /* ================= MAP ================= */
+  /* MAP */
+
   if(data.map){
     const mapElement = renderMap(data.map);
     div.appendChild(mapElement);
   }
 
-  /* ================= META GRID ================= */
+  /* META GRID */
+
   const metaWrapper = document.createElement("div");
   metaWrapper.className = "match-meta-grid";
+
   metaWrapper.innerHTML = `
     <div class="match-meta-card">
-      <strong>Island</strong>
-      <div>${data.island}</div>
+      <strong>${t("island")}</strong>
+      <div>${t(data.island)}</div>
     </div>
 
     <div class="match-meta-card">
-      <strong>Caves</strong>
-      <div>${data.caves}</div>
+      <strong>${t("caves")}</strong>
+      <div>${t(data.caves)}</div>
     </div>
 
     <div class="match-meta-card">
-      <strong>Capitols</strong>
+      <strong>${t("capitols")}</strong>
       <div>${data.capitols}</div>
     </div>
   `;
+
   div.appendChild(metaWrapper);
 
   /* ================= SCORE TABLE ================= */
-  const playersArray = Object.values(data.players);
+    const playersArray = Object.values(data.players);
 
   if (!playersArray.length) {
+
     const noData = document.createElement("p");
-    noData.textContent = "No scores available.";
+    noData.textContent = t("no_scores_available");
+
     div.appendChild(noData);
     matchDetailModal.style.display = "block";
     return;
@@ -686,12 +783,12 @@ async function showMatchDetails(id){
 
   const table = document.createElement("table");
 
-  // THEAD
   const thead = document.createElement("thead");
   const headerRow = document.createElement("tr");
 
   const thTask = document.createElement("th");
-  thTask.textContent = "Task";
+  thTask.textContent = t("task");
+
   headerRow.appendChild(thTask);
 
   playersArray.forEach(p=>{
@@ -704,15 +801,17 @@ async function showMatchDetails(id){
   table.appendChild(thead);
 
   // TBODY
-  const tbody = document.createElement("tbody");
+    const tbody = document.createElement("tbody");
 
   const taskNames = Object.keys(playersArray[0].details);
 
   taskNames.forEach(task=>{
+
     const tr = document.createElement("tr");
 
     const tdTask = document.createElement("td");
-    tdTask.textContent = task;
+    tdTask.textContent = t(task);
+
     tr.appendChild(tdTask);
 
     playersArray.forEach(p=>{
@@ -725,10 +824,11 @@ async function showMatchDetails(id){
   });
 
   // TOTAL ROW
-  const totalRow = document.createElement("tr");
+    const totalRow = document.createElement("tr");
 
   const tdTotalLabel = document.createElement("td");
-  tdTotalLabel.innerHTML = "<strong>Total</strong>";
+  tdTotalLabel.innerHTML = `<strong>${t("total")}</strong>`;
+
   totalRow.appendChild(tdTotalLabel);
 
   playersArray.forEach(p=>{
@@ -750,63 +850,70 @@ function closeMatchDetails(){
 }
 
 
-  function enableEditMode(matchId, data){
-
+function enableEditMode(matchId, data) {
   editingMatchId = matchId;
-
   const div = document.getElementById("matchDetailContent");
+  div.innerHTML = "";
 
   const playersArray = Object.values(data.players);
-
   if(!playersArray.length){
-    alert("No players found");
+    alert(t("no_players_found"));
     return;
   }
 
   const taskNames = Object.keys(playersArray[0].details);
 
-  let html = `<table>
-    <thead>
-      <tr>
-        <th>Task</th>`;
+  const table = document.createElement("table");
 
-  playersArray.forEach(p=>{
-    html += `<th>${p.username}</th>`;
+  // THEAD
+  const thead = document.createElement("thead");
+  const trHead = document.createElement("tr");
+  const thTask = document.createElement("th");
+  thTask.textContent = t("task");
+  trHead.appendChild(thTask);
+
+  playersArray.forEach(p => {
+    const th = document.createElement("th");
+    th.textContent = p.username;
+    trHead.appendChild(th);
   });
+  thead.appendChild(trHead);
+  table.appendChild(thead);
 
-  html += `</tr></thead><tbody>`;
+  // TBODY
+  const tbody = document.createElement("tbody");
+  taskNames.forEach(task => {
+    const tr = document.createElement("tr");
 
-  taskNames.forEach(task=>{
-    html += `<tr><td>${task}</td>`;
+    const tdTask = document.createElement("td");
+    tdTask.textContent = t(task);
+    tr.appendChild(tdTask);
 
-    playersArray.forEach(p=>{
-      html += `
-        <td>
-          <input type="number"
-                 value="${p.details[task]}"
-          >
-        </td>`;
+    playersArray.forEach(p => {
+      const td = document.createElement("td");
+      const input = document.createElement("input");
+      input.type = "number";
+      input.value = p.details[task];
+      input.className = "score-input";
+      td.appendChild(input);
+      tr.appendChild(td);
     });
 
-    html += `</tr>`;
+    tbody.appendChild(tr);
   });
+  table.appendChild(tbody);
+  div.appendChild(table);
 
-  html += `
-    </tbody>
-  </table>
-
-  <button id="saveEditedScoresBtn">
-    💾 Save Changes
-  </button>`;
-
-  div.innerHTML = html;
-
-  document.getElementById("saveEditedScoresBtn")
-    .onclick = saveEditedScores;
+  // SAVE BUTTON
+  const saveBtn = document.createElement("button");
+  saveBtn.id = "saveEditedScoresBtn";
+  saveBtn.textContent = `💾 ${t("save_changes")}`;
+  saveBtn.onclick = saveEditedScores;
+  div.appendChild(saveBtn);
 }
 
 
-  async function saveEditedScores(){
+async function saveEditedScores(){
 
   const matchId = editingMatchId;
 
@@ -816,6 +923,7 @@ function closeMatchDetails(){
   }
 
   const table = document.querySelector("#matchDetailContent table");
+
   if(!table){
     alert("Table missing");
     return;
@@ -841,15 +949,13 @@ function closeMatchDetails(){
   });
 
   const res = await fetch(`/matches/${matchId}/scores`, {
-  method:"PATCH",
-  headers:{
-    Authorization:`Bearer ${token}`,
-    "Content-Type":"application/json"
-  },
-  body: JSON.stringify({
-    scores: scores
-  })
-});
+    method:"PATCH",
+    headers:{
+      Authorization:`Bearer ${token}`,
+      "Content-Type":"application/json"
+    },
+    body: JSON.stringify({ scores })
+  });
 
   if(!res.ok){
     alert("Update failed");
@@ -858,11 +964,15 @@ function closeMatchDetails(){
 
   alert("Scores updated!");
 
-await fetchMyMatches();
-  console.log(matchId)
-  console.log(allMatches)
+  // Refresh match list (but DO NOT rerender modal detail twice)
+  await fetchMyMatches();
 
-await showMatchDetails(matchId);
+  // Keep modal open but reload detail view cleanly
+  const data = await fetch(`/matches/${matchId}`,{
+    headers:{Authorization:`Bearer ${token}`}
+  }).then(r=>r.json());
+
+  showMatchDetails(matchId);
 }
 </script>
 

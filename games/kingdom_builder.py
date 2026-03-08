@@ -39,11 +39,11 @@ def select_tasks(map, island, number_of_capitols):
     tasks = tasks + crossroad_tasks
 
     if "Noblewomen" not in tasks and number_of_palaces > 0:
-        tasks += ["Palaces"]
+        tasks += ["task_palaces"]
     if number_of_castles - number_of_capitols > 0:
-        tasks += ["Castles"]
+        tasks += ["task_castles"]
     if number_of_capitols > 0 and number_of_castles > 0:
-        tasks += ["Capitols"]
+        tasks += ["task_capitols"]
     return tasks
 
 def nomads_expansion():
@@ -59,11 +59,11 @@ def harvest_expansion():
     pass
 
 def island_queenie():
-    return random.choice(["Wood", "Canyon"])
+    return random.choice(["wood", "canyon"])
 
 #TODO: get random number for map tile position of each cave
 def caves_queenie():
-        return 'Caves'
+        return "caves"
 
 #TODO: get random number(s) for capitol(s)
 def capitols_queenie():
@@ -75,36 +75,68 @@ def capitols_queenie():
 
 
 #fyi: Lords excluded
-TASKS = ["Fishermen", "Miners", "Merchants", "Workers", "Discoverer", "Knights", "Hermits", "Citizens", "Farmers", "Families", "Shepherds", "Ambassadors", "Geologists", "Messengers", "Noblewomen", "Vassals", "Captains", "Scouts", "Rangers", "Travellers", "Chainers", "Homesteaders", "Mayors", "Rovers"]
-CROSSROAD_TASKS = ["Home Country", "Place of Refuge", "Fortress", "Advance", "Road", "Compass Points"]
+TASKS = [
+    "task_fishermen",
+    "task_miners",
+    "task_merchants",
+    "task_workers",
+    "task_discoverer",
+    "task_knights",
+    "task_hermits",
+    "task_citizens",
+    "task_farmers",
+    "task_families",
+    "task_shepherds",
+    "task_ambassadors",
+    "task_geologists",
+    "task_messengers",
+    "task_noblewomen",
+    "task_vassals",
+    "task_captains",
+    "task_scouts",
+    "task_rangers",
+    "task_travellers",
+    "task_chainers",
+    "task_homesteaders",
+    "task_mayors",
+    "task_rovers"
+]
+CROSSROAD_TASKS = [
+    "crossroad_task_home country",
+    "crossroad_task_place_of_refuge",
+    "crossroad_task_fortress",
+    "crossroad_task_advance",
+    "crossroad_task_road",
+    "crossroad_task_compass_points"
+]
 
 
 # [ID, "expansion", "title", castles, palaces, Silos, Mountain Caves]
 MAP_TILES = [
-    [1, "KB", "Oracle", 2, 0, 0, 2],
-    [2, "KB", "Harbor", 2, 0, 0, 1],
-    [3, "KB", "Oasis", 1, 0, 0, 0],
-    [4, "KB", "Paddock", 1, 0, 0, 13],
-    [5, "KB", "Barn", 1, 0, 0, 9],
-    [6, "KB", "Tower", 1, 0, 0, 9],
-    [7, "KB", "Farm", 1, 0, 0, 2],
-    [8, "KB", "Tavern", 1, 0, 0, 9],
-    [9, "N", "Quarry", 0, 0, 0, 3],
-    [10, "N", "Village", 0, 0, 0, 4],
-    [11, "N", "Garden", 0, 0, 0, 5],
-    [12, "N", "Caravan", 0, 0, 0, 1],
-    [13, "C", "Lighthouse", 1, 0, 0, 3],
-    [14, "C", "Fort", 1, 0, 0, 6],
-    [15, "C", "Wagon", 1, 0, 0, 6],
-    [16, "C", "Crossroads", 1, 0, 0, 1],
-    [17, "H", "Watchtower", 0, 0, 1, 1],
-    [18, "H", "Scout Cabin", 1, 0, 1, 2],
-    [19, "H", "Water Mill", 0, 0, 1, 6],
-    [20, "H", "Palisade", 0, 0, 1, 3],
-    [21, "M", "Refuge", 0, 1, 0, 6],
-    [22, "M", "Temple", 0, 1, 0, 1],
-    [23, "M", "Fountain", 0, 1, 0, 2],
-    [24, "M", "Canoe", 0, 1, 0, 7]
+    [1, "KB", "map_oracle", 2, 0, 0, 2],
+    [2, "KB", "map_harbor", 2, 0, 0, 1],
+    [3, "KB", "map_oasis", 1, 0, 0, 0],
+    [4, "KB", "map_paddock", 1, 0, 0, 13],
+    [5, "KB", "map_barn", 1, 0, 0, 9],
+    [6, "KB", "map_tower", 1, 0, 0, 9],
+    [7, "KB", "map_farm", 1, 0, 0, 2],
+    [8, "KB", "map_tavern", 1, 0, 0, 9],
+    [9, "N", "map_quarry", 0, 0, 0, 3],
+    [10, "N", "map_village", 0, 0, 0, 4],
+    [11, "N", "map_garden", 0, 0, 0, 5],
+    [12, "N", "map_caravan", 0, 0, 0, 1],
+    [13, "C", "map_lighthouse", 1, 0, 0, 3],
+    [14, "C", "map_fort", 1, 0, 0, 6],
+    [15, "C", "map_wagon", 1, 0, 0, 6],
+    [16, "C", "map_crossroads", 1, 0, 0, 1],
+    [17, "H", "map_watchtower", 0, 0, 1, 1],
+    [18, "H", "map_scout_cabin", 1, 0, 1, 2],
+    [19, "H", "map_water_mill", 0, 0, 1, 6],
+    [20, "H", "map_palisade", 0, 0, 1, 3],
+    [21, "M", "map_refuge", 0, 1, 0, 6],
+    [22, "M", "map_temple", 0, 1, 0, 1],
+    [23, "M", "map_fountain", 0, 1, 0, 2],
+    [24, "M", "map_canoe", 0, 1, 0, 7]
 ]
 
 def create_match():

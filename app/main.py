@@ -43,6 +43,8 @@ app.add_middleware(
 )
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/script", StaticFiles(directory="script"), name="script")
+app.mount("/locales", StaticFiles(directory="locales"), name="locales")
 
 # Create tables
 try:
