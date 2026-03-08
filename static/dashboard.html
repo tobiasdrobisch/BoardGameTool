@@ -3,28 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <title>Dashboard</title>
+
+        <style>
+        #language-switcher {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+}
+    </style>
 </head>
 <body>
 
-<h1>My Account</h1>
+
+<div id="language-switcher">
+    <button onclick="loadLanguage('de')">DE</button>
+    <button onclick="loadLanguage('en')">EN</button>
+</div>
 
 <!-- Account Infos -->
 <div>
-    <h2>Account data</h2>
+    <h2 data-i18n="my_profile"></h2>
     <p><b>E-Mail:</b> <span id="email"></span></p>
     <p><b>Username:</b> <span id="username"></span></p>
-    <button onclick="deleteUser()">Delete Account</button>
-    <button onclick="logout()">Logout</button>
+    <button onclick="logout()" data-i18n="logout"></button>
 </div>
 
 <hr>
 
 <!-- My games -->
 <div>
-    <h2>My games</h2>
+    <h2 data-i18n="my_games"></h2>
 
     <select id="gameSelect"></select>
-    <button onclick="addSelectedGame()">Add Game</button>
+    <button onclick="addSelectedGame()" data-i18n="add_game"></button>
         <ul id="gameList"></ul>
 </div>
 
@@ -32,10 +43,12 @@
 
 <!-- Delete User -->
 <div>
-    <h2>Delete Account</h2>
+    <h2 data-i18n="delete_account"></h2>
+    <button onclick="deleteUser()" data-i18n="delete_account"></button>
 </div>
 
 
+<script src="/script/i18n.js"></script>
 <script>
 const token = localStorage.getItem("token");
 
