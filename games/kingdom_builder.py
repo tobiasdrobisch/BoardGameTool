@@ -102,7 +102,7 @@ TASKS = [
     "task_rovers"
 ]
 CROSSROAD_TASKS = [
-    "crossroad_task_home country",
+    "crossroad_task_home_country",
     "crossroad_task_place_of_refuge",
     "crossroad_task_fortress",
     "crossroad_task_advance",

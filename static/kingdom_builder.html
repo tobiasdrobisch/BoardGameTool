@@ -443,7 +443,6 @@ function renderMatchSettings(m){
   });
 }
 function renderMap(map){
-  console.log(map)
   const grid=document.createElement("div");
   grid.className="map-grid";
   map.forEach(([id,exp,name, , , , , ori])=>{
@@ -703,12 +702,33 @@ filterPlayerCount.onchange=applyFilters;
 filterPlayerName.oninput=applyFilters;
 
 function applyFilters(){
-  let f=allMatches;
-  const c=filterPlayerCount.value;
-  const n = filterPlayerName.value.toLowerCase().slice(0, 30);
-  if(c) f=f.filter(m=>m.player_count==c);
-  if(n) f=f.filter(m=>m.players.some(p=>p.toLowerCase().includes(n)));
-  renderMatchHistory(f);
+
+  const countFilter = filterPlayerCount.value;
+  const nameFilter = filterPlayerName.value
+                        .toLowerCase()
+                        .trim()
+                        .slice(0,30);
+
+  const filteredMatches = allMatches.filter(match => {
+
+    // Player count filter
+    if(countFilter && match.player_count != countFilter){
+      return false;
+    }
+
+    // Player name filter
+    if(nameFilter){
+      const playerMatch = match.players?.some(player =>
+        player?.username?.toLowerCase()?.includes(nameFilter)
+      );
+
+      if(!playerMatch) return false;
+    }
+
+    return true;
+  });
+
+  renderMatchHistory(filteredMatches);
 }
 
 /* ================= MATCH DETAIL MODAL ================= */

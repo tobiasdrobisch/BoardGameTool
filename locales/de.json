@@ -28,7 +28,7 @@
   "task_capitols": "Kapitole",
 
   "crossroad_task_home_country": "Heimatland",
-  "crossroad_task_task_place_of_refuge": "Zufluchtsort",
+  "crossroad_task_place_of_refuge": "Zufluchtsort",
   "crossroad_task_fortress": "Festung",
   "crossroad_task_advance": "Vormarsch",
   "crossroad_task_road": "Straße",
@@ -60,8 +60,10 @@
   "map_canoe": "Kanu",
 
   "login": "Anmelden",
+  "login_process": "Anmeldung",
   "logout": "Abmelden",
   "register": "Registrieren",
+  "registration": "Registrierung",
   "password": "Passwort",
   "username": "Benutzername",
   "e-mail": "E-Mail",

@@ -90,7 +90,7 @@ class MatchResultValue(Base):
     id = Column(Integer, primary_key=True, index=True)
     match_result_id = Column(Integer, ForeignKey("match_results.id"), nullable=False)
 
-    category = Column(String, nullable=False)  # z. B. "Straßen", "Burgen", "Bonus"
+    category = Column(String, nullable=False)  # z. B. "Road", "Castles", ...
     value = Column(Integer, nullable=False)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
