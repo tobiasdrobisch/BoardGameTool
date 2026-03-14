@@ -12,6 +12,7 @@ import logging
 from .seed import seed_board_games
 from contextlib import asynccontextmanager
 
+
 # --- lifespan ---
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -23,6 +24,7 @@ async def lifespan(app: FastAPI):
         db.close()
     yield
     print("Application shutdown")
+
 
 # --- app creation ---
 app = FastAPI(lifespan=lifespan)
@@ -46,7 +48,8 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 app.mount("/script", StaticFiles(directory="script"), name="script")
 app.mount("/locales", StaticFiles(directory="locales"), name="locales")
 
-# Create tables
+
+# --- Create tables ---
 try:
     Base.metadata.create_all(bind=engine)
     models.Base.metadata.create_all(bind=engine)
@@ -55,7 +58,9 @@ except Exception as e:
     print(f"Failed to create tables: {e}")
     raise
 
+
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
+
 
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     try:
@@ -72,70 +77,29 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         raise HTTPException(status_code=404, detail="User not found")
     return user
 
-@app.get("/", response_class=HTMLResponse)
+
+# -----------------------------
+# Frontend
+# -----------------------------
+
+@app.get("/", response_class=HTMLResponse, tags=["Frontend"])
 def root():
     with open("static/index.html", "r", encoding="utf-8") as f:
         return HTMLResponse(content=f.read())
 
-@app.get("/dashboard.html")
+
+@app.get("/dashboard.html", tags=["Frontend"])
 def dashboard():
     response = FileResponse("static/dashboard.html")
     response.headers["Cache-Control"] = "no-store"
     return response
 
-@app.post("/start_kingdom_builder")
-def start_kingdom_builder(
-    players: list[str] = Body(...),
-    db: Session = Depends(get_db),
-    current_user: schemas.UserRead = Depends(get_current_user)
-):
-    try:
-        game_data = kingdom_builder.create_match()
-        game_in = schemas.GameCreate(**game_data)
-        db_game = crud.create_match(db, game_in, current_user)
 
-        created_players = []
-        for name in players:
-            user = crud.get_user_by_username(db, name)
+# -----------------------------
+# Auth
+# -----------------------------
 
-            crud.create_match_player(
-                db=db,
-                match_id=db_game.id,
-                user_id=user.id,
-                username_snapshot=user.name
-            )
-            created_players.append(name)
-
-        tasks_with_ids = [
-            {"id": idx, "name": task}
-            for idx, task in enumerate(game_data["tasks"])
-        ]
-
-        return {
-            "match_id": db_game.id,
-            "board_game_id": game_data["board_game_id"],
-            "map": game_data["map"],
-            "island": game_data["island"],
-            "caves": game_data["caves"],
-            "capitols": game_data["capitols"],
-            "players": created_players,
-            "tasks": tasks_with_ids
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/users/{user_id}", response_model=schemas.UserRead)
-def read_user(user_id: int, db: Session = Depends(get_db)):
-    db_user = crud.get_user_by_id(db, user_id)
-    if not db_user:
-        raise HTTPException(status_code=404, detail="User not found")
-    return db_user
-
-@app.get("/users", response_model=list[schemas.UserRead])
-def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    return crud.get_users(db, skip=skip, limit=limit)
-
-@app.post("/register", response_model=schemas.UserRead, status_code=201)
+@app.post("/register", response_model=schemas.UserRead, status_code=201, tags=["Auth"])
 def register_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     if crud.get_user_by_email(db, user.email):
         raise HTTPException(status_code=400, detail="Email already exists")
@@ -143,7 +107,8 @@ def register_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Username already exists")
     return crud.create_user(db, user)
 
-@app.post("/login", response_model=schemas.Token)
+
+@app.post("/login", response_model=schemas.Token, tags=["Auth"])
 def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db)
@@ -169,16 +134,45 @@ def login(
         "token_type": "bearer"
     }
 
-@app.get("/me", response_model=schemas.UserRead)
+
+# -----------------------------
+# Users
+# -----------------------------
+
+@app.get("/me", response_model=schemas.UserRead, tags=["Users"])
 def read_me(current_user: schemas.UserRead = Depends(get_current_user)):
     return current_user
 
-@app.delete("/users/me", response_model=dict)
+
+@app.delete("/users/me", response_model=dict, tags=["Users"])
 def delete_me(current_user=Depends(get_current_user), db: Session = Depends(get_db)):
     crud.delete_user(db, current_user.id)
     return {"msg": "User deleted successfully"}
 
-@app.get("/users/me/boardgames")
+
+@app.get("/users", response_model=list[schemas.UserRead], tags=["Users"])
+def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    return crud.get_users(db, skip=skip, limit=limit)
+
+
+@app.get("/users/{user_id}", response_model=schemas.UserRead, tags=["Users"])
+def read_user(user_id: int, db: Session = Depends(get_db)):
+    db_user = crud.get_user_by_id(db, user_id)
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return db_user
+
+
+# -----------------------------
+# Board Games
+# -----------------------------
+
+@app.get("/boardgames", tags=["BoardGames"])
+def get_all_boardgames(db: Session = Depends(get_db)):
+    return db.query(models.BoardGame).all()
+
+
+@app.get("/users/me/boardgames", tags=["BoardGames"])
 def get_my_boardgames(db: Session = Depends(get_db), current_user=Depends(get_current_user)):
     return (
         db.query(models.BoardGame)
@@ -187,29 +181,8 @@ def get_my_boardgames(db: Session = Depends(get_db), current_user=Depends(get_cu
         .all()
     )
 
-@app.delete("/users/me/boardgames/{board_game_id}")
-def remove_boardgame_from_user(
-    board_game_id: int,
-    db: Session = Depends(get_db),
-    current_user=Depends(get_current_user)
-):
-    entry = (
-        db.query(models.UserBoardGame)
-        .filter(
-            models.UserBoardGame.user_id == current_user.id,
-            models.UserBoardGame.board_game_id == board_game_id
-        )
-        .first()
-    )
 
-    if not entry:
-        raise HTTPException(status_code=404, detail="Game not assigned")
-
-    db.delete(entry)
-    db.commit()
-    return {"message": "Board game removed"}
-
-@app.post("/users/me/boardgames/{board_game_id}")
+@app.post("/users/me/boardgames/{board_game_id}", tags=["BoardGames"])
 def add_boardgame_to_user(
     board_game_id: int,
     db: Session = Depends(get_db),
@@ -238,9 +211,39 @@ def add_boardgame_to_user(
 
     db.add(user_game)
     db.commit()
+
     return {"message": "Board game added"}
 
-@app.get("/matches/my")
+
+@app.delete("/users/me/boardgames/{board_game_id}", tags=["BoardGames"])
+def remove_boardgame_from_user(
+    board_game_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user)
+):
+    entry = (
+        db.query(models.UserBoardGame)
+        .filter(
+            models.UserBoardGame.user_id == current_user.id,
+            models.UserBoardGame.board_game_id == board_game_id
+        )
+        .first()
+    )
+
+    if not entry:
+        raise HTTPException(status_code=404, detail="Game not assigned")
+
+    db.delete(entry)
+    db.commit()
+
+    return {"message": "Board game removed"}
+
+
+# -----------------------------
+# Matches
+# -----------------------------
+
+@app.get("/matches/my", tags=["Matches"])
 def get_my_matches(db: Session = Depends(get_db),
                    current_user=Depends(get_current_user)):
 
@@ -287,7 +290,8 @@ def get_my_matches(db: Session = Depends(get_db),
 
     return result
 
-@app.get("/matches/{match_id}")
+
+@app.get("/matches/{match_id}", tags=["Matches"])
 def get_match_detail(match_id: int,
                      db: Session = Depends(get_db),
                      current_user=Depends(get_current_user)):
@@ -343,13 +347,15 @@ def get_match_detail(match_id: int,
 
     return match_data
 
-@app.patch("/matches/{match_id}/scores")
+
+@app.patch("/matches/{match_id}/scores", tags=["Matches"])
 def update_match_scores(
     match_id: int,
     payload: schemas.MatchScoresUpdate,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user)
 ):
+
     match = db.query(models.Match).filter(
         models.Match.id == match_id
     ).first()
@@ -366,9 +372,9 @@ def update_match_scores(
 
     username_to_obj = {mp.username_snapshot: mp for mp in match_players}
 
-    # Update values and create MatchResult if missing
     for task_name, player_scores in payload.scores.items():
         for username, score in player_scores.items():
+
             if username not in username_to_obj:
                 continue
 
@@ -381,7 +387,7 @@ def update_match_scores(
             if not result:
                 result = models.MatchResult(match_player_id=mp_obj.id, total_score=0)
                 db.add(result)
-                db.flush()  # make sure result.id exists
+                db.flush()
 
             value_entry = db.query(models.MatchResultValue).filter(
                 models.MatchResultValue.match_result_id == result.id,
@@ -396,10 +402,10 @@ def update_match_scores(
                     category=task_name,
                     value=score
                 ))
+
     db.flush()
     db.expire_all()
 
-    # Aggregation
     totals = (
         db.query(
             models.MatchResult.id,
@@ -409,7 +415,6 @@ def update_match_scores(
         .group_by(models.MatchResult.id)
         .all()
     )
-
 
     total_map = {r[0]: r[1] or 0 for r in totals}
 
@@ -424,12 +429,81 @@ def update_match_scores(
         result.total_score = total_map.get(result.id, 0)
 
     db.commit()
-
-    # reset cache and get new data with next query
     db.expire_all()
 
     return {"status": "updated"}
 
-@app.get("/boardgames")
-def get_all_boardgames(db: Session = Depends(get_db)):
-    return db.query(models.BoardGame).all()
+
+@app.delete("/matches/{match_id}", tags=["Matches"])
+def delete_match(
+    match_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user)
+):
+    match = db.query(models.Match).filter(
+        models.Match.id == match_id
+    ).first()
+
+    if not match:
+        raise HTTPException(status_code=404, detail="Match not found")
+
+    if match.created_by != current_user.id:
+        raise HTTPException(status_code=403, detail="Not allowed")
+
+    db.delete(match)
+    db.commit()
+
+    return {"message": "Match deleted"}
+
+
+# -----------------------------
+# Games
+# -----------------------------
+
+@app.post("/start_kingdom_builder", tags=["Games"])
+def start_kingdom_builder(
+    players: list[str] = Body(...),
+    db: Session = Depends(get_db),
+    current_user: schemas.UserRead = Depends(get_current_user)
+):
+
+    try:
+
+        game_data = kingdom_builder.create_match()
+
+        game_in = schemas.GameCreate(**game_data)
+        db_game = crud.create_match(db, game_in, current_user)
+
+        created_players = []
+
+        for name in players:
+
+            user = crud.get_user_by_username(db, name)
+
+            crud.create_match_player(
+                db=db,
+                match_id=db_game.id,
+                user_id=user.id,
+                username_snapshot=user.name
+            )
+
+            created_players.append(name)
+
+        tasks_with_ids = [
+            {"id": idx, "name": task}
+            for idx, task in enumerate(game_data["tasks"])
+        ]
+
+        return {
+            "match_id": db_game.id,
+            "board_game_id": game_data["board_game_id"],
+            "map": game_data["map"],
+            "island": game_data["island"],
+            "caves": game_data["caves"],
+            "capitols": game_data["capitols"],
+            "players": created_players,
+            "tasks": tasks_with_ids
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
