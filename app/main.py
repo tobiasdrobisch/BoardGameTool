@@ -249,7 +249,8 @@ def get_my_matches(db: Session = Depends(get_db),
 
     matches = (
         db.query(models.Match)
-        .filter(models.Match.created_by == current_user.id)
+        .join(models.MatchPlayer, models.MatchPlayer.match_id == models.Match.id)
+        .filter(models.MatchPlayer.user_id == current_user.id)
         .order_by(desc(models.Match.created_at))
         .all()
     )
@@ -292,23 +293,63 @@ def get_my_matches(db: Session = Depends(get_db),
 
 
 @app.get("/matches/{match_id}", tags=["Matches"])
-def get_match_detail(match_id: int,
-                     db: Session = Depends(get_db),
-                     current_user=Depends(get_current_user)):
+def get_match_detail(
+    match_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user)
+):
 
-    match = db.query(models.Match).filter(models.Match.id == match_id).first()
+    # Match + Permission Check
+    match = (
+        db.query(models.Match)
+        .join(models.MatchPlayer)
+        .filter(
+            models.Match.id == match_id,
+            models.MatchPlayer.user_id == current_user.id
+        )
+        .first()
+    )
+
     if not match:
-        raise HTTPException(status_code=404, detail="Match not found")
+        raise HTTPException(status_code=404, detail="Match not found or not allowed")
 
-    match_players = db.query(models.MatchPlayer).filter(
-        models.MatchPlayer.match_id == match_id
-    ).all()
+    # Players
+    match_players = (
+        db.query(models.MatchPlayer)
+        .filter(models.MatchPlayer.match_id == match_id)
+        .all()
+    )
 
     if not match_players:
         raise HTTPException(status_code=404, detail="No players found")
 
+    player_ids = [mp.id for mp in match_players]
+
+    # Results
+    results = (
+        db.query(models.MatchResult)
+        .filter(models.MatchResult.match_player_id.in_(player_ids))
+        .all()
+    )
+
+    result_map = {r.match_player_id: r for r in results}
+
+    result_ids = [r.id for r in results]
+
+    # Result values
+    values = (
+        db.query(models.MatchResultValue)
+        .filter(models.MatchResultValue.match_result_id.in_(result_ids))
+        .all()
+    )
+
+    values_map = {}
+
+    for v in values:
+        values_map.setdefault(v.match_result_id, []).append(v)
+
     match_data = {
-        "match_id":match.id,
+        "match_id": match.id,
         "map": match.map,
         "island": match.island,
         "caves": match.caves,
@@ -317,27 +358,24 @@ def get_match_detail(match_id: int,
         "players": {}
     }
 
+    tasks = match.tasks if match.tasks else []
+
     for mp in match_players:
-        match_result = db.query(models.MatchResult).filter(
-            models.MatchResult.match_player_id == mp.id
-        ).first()
 
-        player_details = {}
-        tasks = match.tasks if match.tasks else []
+        player_details = {task: 0 for task in tasks}
 
-        for task in tasks:
-            player_details[task] = 0
+        result = result_map.get(mp.id)
 
         total_score = 0
-        if match_result:
-            values = db.query(models.MatchResultValue).filter(
-                models.MatchResultValue.match_result_id == match_result.id
-            ).all()
 
-            for v in values:
+        if result:
+
+            total_score = result.total_score
+
+            player_values = values_map.get(result.id, [])
+
+            for v in player_values:
                 player_details[v.category] = v.value
-
-            total_score = match_result.total_score
 
         match_data["players"][mp.user_id] = {
             "username": mp.username_snapshot,
