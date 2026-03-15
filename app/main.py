@@ -52,7 +52,6 @@ app.mount("/locales", StaticFiles(directory="locales"), name="locales")
 # --- Create tables ---
 try:
     Base.metadata.create_all(bind=engine)
-    models.Base.metadata.create_all(bind=engine)
     print("Tables created successfully.")
 except Exception as e:
     print(f"Failed to create tables: {e}")
