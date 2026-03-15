@@ -183,6 +183,23 @@ input.score-input {
   border: 1px solid #ddd;
   text-align: center;
 }
+
+  .player-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+}
+
+.player-left{
+  flex:1;
+}
+
+.player-right{
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
 </style>
 </head>
 
@@ -224,8 +241,18 @@ input.score-input {
   <div id="suggestions"></div>
 </div>
 
-<div id="selectedPlayers"></div>
-<p data-i18n="selected_players">: <b id="playerCountDisplay">0</b></p>
+<div class="player-row">
+  <div class="player-left">
+    <div id="selectedPlayers"></div>
+    <p data-i18n="selected_players">: <b id="playerCountDisplay">0</b></p>
+  </div>
+
+  <div class="player-right">
+    <label for="startPlayer">Start Player:</label>
+    <select id="startPlayer"></select>
+  </div>
+</div>
+
 
 <button id="startGameBtn" disabled data-i18n="create_match"></button>
     </form>
@@ -303,6 +330,7 @@ window.addEventListener("DOMContentLoaded", async () => {
   MAX_PLAYERS = 0;
   selectedPlayers = [];
   renderSelectedPlayers();
+  renderStartPlayerSelect()
   saveScoresBtn.classList.add("hidden");
   updateStartButton();
 
@@ -351,12 +379,14 @@ function addPlayer(name){
   input.value="";
   suggestions.innerHTML="";
   renderSelectedPlayers();
+  renderStartPlayerSelect()
   updateStartButton();
 }
 
 function removePlayer(name){
   selectedPlayers=selectedPlayers.filter(p=>p!==name);
   renderSelectedPlayers();
+  renderStartPlayerSelect();
   updateStartButton();
 }
 
@@ -385,13 +415,18 @@ startBtn.onclick = async () => {
 
   try {
 
+const startPlayer = document.getElementById("startPlayer").value
+
     const res = await fetch("/start_kingdom_builder", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json"
       },
-      body: JSON.stringify(selectedPlayers)
+      body: JSON.stringify({
+          players: selectedPlayers,
+          start_player: startPlayer
+          })
     });
 
     currentMatch = await res.json();
@@ -435,7 +470,7 @@ function renderMatchSettings(m){
   ];
 
   infoFields.forEach(field => {
-    // translate only strings. if int keep it int
+    // // Translate only strings; keep integers as-is
     const value = typeof field.value === "string" ? t(field.value) : field.value;
     const p = document.createElement("p");
     p.innerHTML = `<b>${field.label}:</b> ${value}`;
@@ -491,7 +526,7 @@ function renderTasks(){
   currentTasks.forEach(task=>{
     const tr = document.createElement("tr");
 
-    // Task name cell (übersetzt)
+    // Task name cell
     const tdTask = document.createElement("td");
     tdTask.textContent = t(task.name);
     tr.appendChild(tdTask);
@@ -633,18 +668,21 @@ function renderMatchHistory(matches){
   const headerRow = document.createElement("tr");
 
   const thDate = document.createElement("th");
-  thDate.innerText = t("date");
+  thDate.setAttribute("data-i18n","date");
 
   const thPlayers = document.createElement("th");
-  thPlayers.innerText = t("players");
+  thPlayers.setAttribute("data-i18n","players");
+
+  const thStartPlayer = document.createElement("th");   // NEU
+  thStartPlayer.setAttribute("data-i18n","start_player");
 
   const thScores = document.createElement("th");
-  thScores.innerText = t("scores");
+  thScores.setAttribute("data-i18n","scores");
 
   const thDetails = document.createElement("th");
-  thDetails.innerText = t("details");
+  thDetails.setAttribute("data-i18n","details");
 
-  headerRow.append(thDate, thPlayers, thScores, thDetails);
+  headerRow.append(thDate, thPlayers, thStartPlayer, thScores, thDetails);
   thead.appendChild(headerRow);
   table.appendChild(thead);
 
@@ -659,6 +697,9 @@ function renderMatchHistory(matches){
 
     const tdCount = document.createElement("td");
     tdCount.textContent = m.player_count;
+
+    const tdStartPlayer = document.createElement("td");  // NEU
+    tdStartPlayer.textContent = m.start_player || "x";
 
     const tdScores = document.createElement("td");
     const scoresArray = Object.values(m.scores);
@@ -688,13 +729,16 @@ function renderMatchHistory(matches){
 
     tdBtn.appendChild(btn);
 
-    tr.append(tdDate, tdCount, tdScores, tdBtn);
+    tr.append(tdDate, tdCount, tdStartPlayer, tdScores, tdBtn); // Reihenfolge angepasst
     tbody.appendChild(tr);
 
   });
 
   table.appendChild(tbody);
   container.appendChild(table);
+
+loadLanguage(currentLang)
+
 }
 
 /* ================= FILTERS ================= */
@@ -930,6 +974,14 @@ function enableEditMode(matchId, data) {
   saveBtn.textContent = `💾 ${t("save_changes")}`;
   saveBtn.onclick = saveEditedScores;
   div.appendChild(saveBtn);
+}
+
+function renderStartPlayerSelect() {
+  const select = document.getElementById("startPlayer")
+
+  select.innerHTML = selectedPlayers
+    .map(p => `<option value="${p}">${p}</option>`)
+    .join("")
 }
 
 

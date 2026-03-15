@@ -249,7 +249,8 @@ def get_my_matches(db: Session = Depends(get_db),
 
     matches = (
         db.query(models.Match)
-        .filter(models.Match.created_by == current_user.id)
+        .join(models.MatchPlayer, models.MatchPlayer.match_id == models.Match.id)
+        .filter(models.MatchPlayer.user_id == current_user.id)
         .order_by(desc(models.Match.created_at))
         .all()
     )
@@ -279,6 +280,11 @@ def get_my_matches(db: Session = Depends(get_db),
                 "score": match_result.total_score if match_result else 0
             }
 
+        start_player_name = next(
+            (mp.username_snapshot for mp in match_players if mp.user_id == m.start_player_id),
+            None
+        )
+
         result.append({
             "match_id": m.id,
             "created_at": m.created_at.isoformat(),
@@ -286,29 +292,69 @@ def get_my_matches(db: Session = Depends(get_db),
             "players": players_info,
             "player_count": len(players_info),
             "scores": scores,
+            "start_player": start_player_name
         })
-
     return result
 
 
 @app.get("/matches/{match_id}", tags=["Matches"])
-def get_match_detail(match_id: int,
-                     db: Session = Depends(get_db),
-                     current_user=Depends(get_current_user)):
+def get_match_detail(
+    match_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user)
+):
 
-    match = db.query(models.Match).filter(models.Match.id == match_id).first()
+    # Match + Permission Check
+    match = (
+        db.query(models.Match)
+        .join(models.MatchPlayer)
+        .filter(
+            models.Match.id == match_id,
+            models.MatchPlayer.user_id == current_user.id
+        )
+        .first()
+    )
+
     if not match:
-        raise HTTPException(status_code=404, detail="Match not found")
+        raise HTTPException(status_code=404, detail="Match not found or not allowed")
 
-    match_players = db.query(models.MatchPlayer).filter(
-        models.MatchPlayer.match_id == match_id
-    ).all()
+    # Players
+    match_players = (
+        db.query(models.MatchPlayer)
+        .filter(models.MatchPlayer.match_id == match_id)
+        .all()
+    )
 
     if not match_players:
         raise HTTPException(status_code=404, detail="No players found")
 
+    player_ids = [mp.id for mp in match_players]
+
+    # Results
+    results = (
+        db.query(models.MatchResult)
+        .filter(models.MatchResult.match_player_id.in_(player_ids))
+        .all()
+    )
+
+    result_map = {r.match_player_id: r for r in results}
+
+    result_ids = [r.id for r in results]
+
+    # Result values
+    values = (
+        db.query(models.MatchResultValue)
+        .filter(models.MatchResultValue.match_result_id.in_(result_ids))
+        .all()
+    )
+
+    values_map = {}
+
+    for v in values:
+        values_map.setdefault(v.match_result_id, []).append(v)
+
     match_data = {
-        "match_id":match.id,
+        "match_id": match.id,
         "map": match.map,
         "island": match.island,
         "caves": match.caves,
@@ -317,27 +363,24 @@ def get_match_detail(match_id: int,
         "players": {}
     }
 
+    tasks = match.tasks if match.tasks else []
+
     for mp in match_players:
-        match_result = db.query(models.MatchResult).filter(
-            models.MatchResult.match_player_id == mp.id
-        ).first()
 
-        player_details = {}
-        tasks = match.tasks if match.tasks else []
+        player_details = {task: 0 for task in tasks}
 
-        for task in tasks:
-            player_details[task] = 0
+        result = result_map.get(mp.id)
 
         total_score = 0
-        if match_result:
-            values = db.query(models.MatchResultValue).filter(
-                models.MatchResultValue.match_result_id == match_result.id
-            ).all()
 
-            for v in values:
+        if result:
+
+            total_score = result.total_score
+
+            player_values = values_map.get(result.id, [])
+
+            for v in player_values:
                 player_details[v.category] = v.value
-
-            total_score = match_result.total_score
 
         match_data["players"][mp.user_id] = {
             "username": mp.username_snapshot,
@@ -463,22 +506,41 @@ def delete_match(
 @app.post("/start_kingdom_builder", tags=["Games"])
 def start_kingdom_builder(
     players: list[str] = Body(...),
+    start_player: str = Body(...),
     db: Session = Depends(get_db),
     current_user: schemas.UserRead = Depends(get_current_user)
 ):
 
     try:
+        # --- basic validation ---
+        if len(players) < 2:
+            raise HTTPException(400, "At least two players required")
 
+        if start_player not in players:
+            raise HTTPException(400, "Start player must be one of the selected players")
+
+        # --- load start player ---
+        start_user = crud.get_user_by_username(db, start_player)
+        if not start_user:
+            raise HTTPException(404, "Start player not found")
+
+        # --- generate game data ---
         game_data = kingdom_builder.create_match()
 
-        game_in = schemas.GameCreate(**game_data)
-        db_game = crud.create_match(db, game_in, current_user)
-
+        # --- create match with start_player_id ---
+        db_game = crud.create_match(
+            db=db,
+            game_data=game_data,
+            current_user=current_user,
+            start_player_id=start_user.id
+        )
         created_players = []
 
+        # --- add players to match ---
         for name in players:
-
             user = crud.get_user_by_username(db, name)
+            if not user:
+                raise HTTPException(404, f"User {name} not found")
 
             crud.create_match_player(
                 db=db,
@@ -486,16 +548,18 @@ def start_kingdom_builder(
                 user_id=user.id,
                 username_snapshot=user.name
             )
-
             created_players.append(name)
 
+        # --- tasks with ids ---
         tasks_with_ids = [
             {"id": idx, "name": task}
             for idx, task in enumerate(game_data["tasks"])
         ]
 
+        # --- response ---
         return {
             "match_id": db_game.id,
+            "start_player": start_user.name,
             "board_game_id": game_data["board_game_id"],
             "map": game_data["map"],
             "island": game_data["island"],
