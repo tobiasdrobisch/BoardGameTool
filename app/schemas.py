@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, List, Dict
+from typing import Any, List, Dict, Optional
 
 from pydantic import BaseModel, EmailStr, field_validator
 
@@ -73,7 +73,7 @@ class GameCreate(BaseModel):
     map: List[List[Any]]
     tasks: List[str]
     board_game_id: int
-
+    start_player_id: Optional[int] = None
 
 class GameRead(BaseModel):
     """

@@ -40,7 +40,11 @@ def delete_user(db: Session, user_id: int):
     db.commit()
     return user
 
-def create_match(db: Session, match: schemas.GameCreate, current_user):
+def create_match(db: Session, game_data: dict, current_user, start_player_id):
+
+    # dict → Pydantic Model
+    match = schemas.GameCreate(**game_data, start_player_id=start_player_id)
+
     db_match = models.Match(
         board_game_id = match.board_game_id,
         tasks=match.tasks,
@@ -48,7 +52,8 @@ def create_match(db: Session, match: schemas.GameCreate, current_user):
         island=match.island,
         caves=match.caves,
         capitols=match.capitols,
-        created_by=current_user.id
+        created_by=current_user.id,
+        start_player_id=start_player_id
     )
     db.add(db_match)
     db.commit()

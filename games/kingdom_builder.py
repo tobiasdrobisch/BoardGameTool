@@ -175,6 +175,7 @@ def create_match():
 
     print(output)
 
+
     return {
         "board_game_id": 1,
         "map": map,

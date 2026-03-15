@@ -19,9 +19,11 @@ class User(Base):
         cascade="all, delete-orphan"
     )
 
+    # set foreign keys
     matches_created = relationship(
         "Match",
-        back_populates="creator"
+        back_populates="creator",
+        foreign_keys="Match.created_by"
     )
 
 
@@ -71,19 +73,30 @@ class Match(Base):
     map = Column(JSON, nullable=False)
 
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    start_player_id = Column(Integer, ForeignKey("users.id"), nullable=False)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
+    # Relationships
     board_game = relationship("BoardGame", back_populates="matches")
 
-    creator = relationship("User", back_populates="matches_created")
+    # set foreign keys explicitly
+    creator = relationship(
+        "User",
+        back_populates="matches_created",
+        foreign_keys=[created_by]
+    )
+
+    start_player = relationship(
+        "User",
+        foreign_keys=[start_player_id]
+    )
 
     players = relationship(
         "MatchPlayer",
         back_populates="match",
         cascade="all, delete-orphan"
     )
-
 
 class MatchPlayer(Base):
     __tablename__ = "match_players"

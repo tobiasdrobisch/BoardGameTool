@@ -280,6 +280,11 @@ def get_my_matches(db: Session = Depends(get_db),
                 "score": match_result.total_score if match_result else 0
             }
 
+        start_player_name = next(
+            (mp.username_snapshot for mp in match_players if mp.user_id == m.start_player_id),
+            None
+        )
+
         result.append({
             "match_id": m.id,
             "created_at": m.created_at.isoformat(),
@@ -287,8 +292,8 @@ def get_my_matches(db: Session = Depends(get_db),
             "players": players_info,
             "player_count": len(players_info),
             "scores": scores,
+            "start_player": start_player_name
         })
-
     return result
 
 
@@ -501,22 +506,41 @@ def delete_match(
 @app.post("/start_kingdom_builder", tags=["Games"])
 def start_kingdom_builder(
     players: list[str] = Body(...),
+    start_player: str = Body(...),
     db: Session = Depends(get_db),
     current_user: schemas.UserRead = Depends(get_current_user)
 ):
 
     try:
+        # --- basic validation ---
+        if len(players) < 2:
+            raise HTTPException(400, "At least two players required")
 
+        if start_player not in players:
+            raise HTTPException(400, "Start player must be one of the selected players")
+
+        # --- load start player ---
+        start_user = crud.get_user_by_username(db, start_player)
+        if not start_user:
+            raise HTTPException(404, "Start player not found")
+
+        # --- generate game data ---
         game_data = kingdom_builder.create_match()
 
-        game_in = schemas.GameCreate(**game_data)
-        db_game = crud.create_match(db, game_in, current_user)
-
+        # --- create match with start_player_id ---
+        db_game = crud.create_match(
+            db=db,
+            game_data=game_data,
+            current_user=current_user,
+            start_player_id=start_user.id
+        )
         created_players = []
 
+        # --- add players to match ---
         for name in players:
-
             user = crud.get_user_by_username(db, name)
+            if not user:
+                raise HTTPException(404, f"User {name} not found")
 
             crud.create_match_player(
                 db=db,
@@ -524,16 +548,18 @@ def start_kingdom_builder(
                 user_id=user.id,
                 username_snapshot=user.name
             )
-
             created_players.append(name)
 
+        # --- tasks with ids ---
         tasks_with_ids = [
             {"id": idx, "name": task}
             for idx, task in enumerate(game_data["tasks"])
         ]
 
+        # --- response ---
         return {
             "match_id": db_game.id,
+            "start_player": start_user.name,
             "board_game_id": game_data["board_game_id"],
             "map": game_data["map"],
             "island": game_data["island"],
