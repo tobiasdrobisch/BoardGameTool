@@ -261,7 +261,8 @@ input.score-input {
 <!-- RIGHT PANEL -->
 <div class="right-panel">
 <h3 data-i18n="match_settings"></h3>
-<div id="matchSettings" data-i18n="no_match_created_yet"></div>
+<!-- <div id="matchSettings" data-i18n="no_match_created_yet"></div>*/ -->
+<div id="matchSettings"> No match created yet!!</div>
 
 <h3 id="tasks_and_scores" data-i18n="tasks_scores" class="hidden"></h3>
 <div id="tasksContainer"></div>
@@ -321,7 +322,7 @@ const countDisplay = playerCountDisplay;
 const startBtn = startGameBtn;
 const matchSettingsDiv = matchSettings;
 const tasksContainer = tasksContainerDiv = document.getElementById("tasksContainer");
-const saveScoresBtn = saveScoresBtnEl = document.getElementById("saveScoresBtn");
+const saveScoresBtn = document.getElementById("saveScoresBtn");
 
 window.addEventListener("DOMContentLoaded", async () => {
 
@@ -430,7 +431,6 @@ const startPlayer = document.getElementById("startPlayer").value
     });
 
     currentMatch = await res.json();
-
     if(!res.ok){
       alert(JSON.stringify(currentMatch));
       return;
@@ -457,7 +457,6 @@ const startPlayer = document.getElementById("startPlayer").value
 /* ================= MAP & SETTINGS ================= */
 function renderMatchSettings(m){
   matchSettingsDiv.innerHTML = "";
-
   // Map-Grid
   matchSettingsDiv.appendChild(renderMap(m.map));
 
@@ -469,13 +468,15 @@ function renderMatchSettings(m){
   ];
 
   infoFields.forEach(field => {
-    // // Translate only strings; keep integers as-is
+    // Translate only strings; keep integers as-is
     const value = typeof field.value === "string" ? t(field.value) : field.value;
     const p = document.createElement("p");
     p.innerHTML = `<b>${field.label}:</b> ${value}`;
     matchSettingsDiv.appendChild(p);
   });
 }
+
+
 function renderMap(map){
   const grid=document.createElement("div");
   grid.className="map-grid";
@@ -529,6 +530,8 @@ uniqueTasks.forEach(task => {
   const tr = document.createElement("tr");
   const tdTask = document.createElement("td");
   tdTask.textContent = t(task.name);
+
+  tdTask.dataset.task = task.name; //store original task name
   tr.appendChild(tdTask);
 
   selectedPlayers.forEach(() => {
@@ -594,19 +597,16 @@ saveScoresBtn.onclick = async () => {
   const scores = {};
 
   table.querySelectorAll("tbody tr").forEach(row => {
-
-    if (row.id === "totalRow") return;
-
-    const task = row.cells[0].textContent;
+    if (row.id === "totalRow") {
+        return};
+    const task = row.cells[0].dataset.task;
     scores[task] = {};
-
     selectedPlayers.forEach((p, i) => {
       const input = row.cells[i + 1].querySelector("input");
       const v = parseInt(input.value) || 0;
       scores[task][p] = v;
     });
   });
-
   const res = await fetch(`/matches/${currentMatch.match_id}/scores`, {
   method: "PATCH",
     headers: {
@@ -769,6 +769,7 @@ async function showMatchDetails(id) {
     headers: { Authorization: `Bearer ${token}` }
   }).then(r => r.json());
 
+
   const div = document.getElementById("matchDetailContent");
   div.innerHTML = ""; // Clear previous content to avoid duplicates
 
@@ -850,7 +851,8 @@ async function showMatchDetails(id) {
 
     const tdTask = document.createElement("td");
     tdTask.textContent = t(task);
-    tdTask.dataset.task = task;   // store original task key
+    tdTask.dataset.task = task;   // store original task key e.g. task_ambassador
+
     tr.appendChild(tdTask);
 
     playersArray.forEach(p => {
@@ -983,6 +985,7 @@ async function saveEditedScores(){
   const scores = {};
 
   rows.forEach(row=>{
+
 const task = row.cells[0].dataset.task;
     scores[task] = {};
 

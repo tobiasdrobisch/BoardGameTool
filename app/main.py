@@ -408,7 +408,7 @@ def update_match_scores(
 
     # Only the creator can update scores
     if match.created_by != current_user.id:
-        raise HTTPException(status_code=403, detail="Not allowed")
+        raise HTTPException(status_code=403, detail="Not allowed. Only the creator can update scores")
 
     # Fetch all players of this match
     match_players = db.query(models.MatchPlayer).filter(
@@ -439,7 +439,7 @@ def update_match_scores(
                 models.MatchResultValue.match_result_id == result.id,
                 models.MatchResultValue.category == task_name
             ).first()
-            if value_entry:
+            if (value_entry):
                 value_entry.value = score
             else:
                 db.add(models.MatchResultValue(
