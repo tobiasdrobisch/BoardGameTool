@@ -321,7 +321,6 @@ const countDisplay = playerCountDisplay;
 const startBtn = startGameBtn;
 const matchSettingsDiv = matchSettings;
 const tasksContainer = tasksContainerDiv = document.getElementById("tasksContainer");
-console.log("DEBUG: table after reading scores", tasksContainer.innerHTML);
 const saveScoresBtn = saveScoresBtnEl = document.getElementById("saveScoresBtn");
 
 window.addEventListener("DOMContentLoaded", async () => {
@@ -441,7 +440,6 @@ const startPlayer = document.getElementById("startPlayer").value
     /* Show scoring UI now */
     renderMatchSettings(currentMatch);
     currentTasks = [...new Map(currentMatch.tasks.map(t => [t.name, t])).values()];
-    console.log("DEBUG: currentTasks before rendering", currentTasks);
     renderTasks();
 
     /* IMPORTANT */
@@ -493,7 +491,6 @@ function renderMap(map){
 
 /* ================= TASK TABLE ================= */
 function renderTasks(){
-console.log("DEBUG: table before resetting tasksContainer", tasksContainer.innerHTML);
   tasksContainer.innerHTML = "";
 
   if(!currentTasks?.length || !currentMatch){
@@ -527,8 +524,6 @@ console.log("DEBUG: table before resetting tasksContainer", tasksContainer.inner
 
   // Remove duplicate tasks by name
 const uniqueTasks = [...new Map(currentTasks.map(t => [t.name, t])).values()];
-console.log("DEBUG: currentTasks after removed duplicates", currentTasks);
-console.log("DEBUG: uniqueTasks before rendering", uniqueTasks);
 
 uniqueTasks.forEach(task => {
   const tr = document.createElement("tr");
@@ -595,8 +590,6 @@ function recalculateTotals(){
 
 /* ================= SAVE SCORES ================= */
 saveScoresBtn.onclick = async () => {
-  console.log("DEBUG: saving scores");
-  console.log("DEBUG: tasksContainer", tasksContainer.innerHTML);
   const table = tasksContainer.querySelector("table");
   const scores = {};
 
@@ -641,8 +634,6 @@ saveScoresBtn.onclick = async () => {
   await fetchMyMatches();
   alert("Scores saved!");
 
-  console.log("after score saved")
-console.log(scores)};
 
 /* ================= MATCH HISTORY ================= */
 function renderMatchHistory(matches){
@@ -770,19 +761,12 @@ function applyFilters(){
 
 /* ================= MATCH DETAIL MODAL ================= */
 async function showMatchDetails(id) {
-console.log("SHOW MATCH DETAILS CALLED", id);
   editingMatchId = id;
 
   // Fetch match data
   const data = await fetch(`/matches/${id}`, {
     headers: { Authorization: `Bearer ${token}` }
   }).then(r => r.json());
-
-  console.log("DEBUG: data from backend 779 showmatchdetails", data);
-const firstPlayer = Object.values(data.players)[0];
-
-console.log("DEBUG: first player details", firstPlayer.details);
-console.log("DEBUG: task names", Object.keys(firstPlayer.details));
 
   const div = document.getElementById("matchDetailContent");
   div.innerHTML = ""; // Clear previous content to avoid duplicates
@@ -861,7 +845,6 @@ console.log("DEBUG: task names", Object.keys(firstPlayer.details));
   const taskNames = [...new Set(playersArray.flatMap(p => Object.keys(p.details)))];
 
   taskNames.forEach(task => {
-   console.log("DEBUG: rendering task row in showmatchdetails", task);
     const tr = document.createElement("tr");
 
     const tdTask = document.createElement("td");
@@ -904,7 +887,6 @@ function closeMatchDetails(){
 
 
 function enableEditMode(matchId, data) {
-console.log("SHOW enableeditmode DETAILS CALLED", matchId);
   editingMatchId = matchId;
   const div = document.getElementById("matchDetailContent");
   div.innerHTML = ""; // Clear content first to avoid duplicates
@@ -939,7 +921,6 @@ console.log("SHOW enableeditmode DETAILS CALLED", matchId);
   // TBODY
   const tbody = document.createElement("tbody");
   taskNames.forEach(task => {
-   console.log("DEBUG: rendering task row in editmode", task);
     const tr = document.createElement("tr");
 
     const tdTask = document.createElement("td");
@@ -989,7 +970,6 @@ async function saveEditedScores(){
     return;
   }
 
-console.log("SHOW saveeditedscores", matchId);
   const table = document.querySelector("#matchDetailContent table");
 
   if(!table){
@@ -1040,13 +1020,7 @@ const task = row.cells[0].dataset.task;
     headers:{Authorization:`Bearer ${token}`}
   }).then(r=>r.json());
 
-  console.log("DEBUG: data from backend saveeditedscore 1032", data);
-const firstPlayer = Object.values(data.players)[0];
 
-console.log("DEBUG: first player details", firstPlayer.details);
-console.log("DEBUG: task names", Object.keys(firstPlayer.details));
-
-console.log("DEBUG: scores saved, reopening match");
   showMatchDetails(matchId);
 }
 </script>

@@ -379,7 +379,8 @@ def get_match_detail(
             player_values = values_map.get(result.id, [])
 
             for v in player_values:
-                player_details[v.category] = v.value
+                if v.category in tasks:  # only accept valid task keys
+                    player_details[v.category] = v.value
 
         match_data["players"][mp.user_id] = {
             "username": mp.username_snapshot,
@@ -397,9 +398,6 @@ def update_match_scores(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user)
 ):
-    print(f"Updating scores for match_id={match_id}")
-    print(f"Payload received: {payload.scores}")
-    print("beginning of patch")
     # Fetch the match
     match = db.query(models.Match).filter(
         models.Match.id == match_id
