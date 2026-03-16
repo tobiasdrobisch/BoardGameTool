@@ -321,6 +321,7 @@ const countDisplay = playerCountDisplay;
 const startBtn = startGameBtn;
 const matchSettingsDiv = matchSettings;
 const tasksContainer = tasksContainerDiv = document.getElementById("tasksContainer");
+console.log("DEBUG: table after reading scores", tasksContainer.innerHTML);
 const saveScoresBtn = saveScoresBtnEl = document.getElementById("saveScoresBtn");
 
 window.addEventListener("DOMContentLoaded", async () => {
@@ -439,8 +440,8 @@ const startPlayer = document.getElementById("startPlayer").value
     /* Match was successfully created */
     /* Show scoring UI now */
     renderMatchSettings(currentMatch);
-    currentTasks = currentMatch.tasks;
-
+    currentTasks = [...new Map(currentMatch.tasks.map(t => [t.name, t])).values()];
+    console.log("DEBUG: currentTasks before rendering", currentTasks);
     renderTasks();
 
     /* IMPORTANT */
@@ -492,6 +493,7 @@ function renderMap(map){
 
 /* ================= TASK TABLE ================= */
 function renderTasks(){
+console.log("DEBUG: table before resetting tasksContainer", tasksContainer.innerHTML);
   tasksContainer.innerHTML = "";
 
   if(!currentTasks?.length || !currentMatch){
@@ -523,43 +525,32 @@ function renderTasks(){
   // BODY
   const tbody = document.createElement("tbody");
 
-  currentTasks.forEach(task=>{
-    const tr = document.createElement("tr");
+  // Remove duplicate tasks by name
+const uniqueTasks = [...new Map(currentTasks.map(t => [t.name, t])).values()];
+console.log("DEBUG: currentTasks after removed duplicates", currentTasks);
+console.log("DEBUG: uniqueTasks before rendering", uniqueTasks);
 
-    // Task name cell
-    const tdTask = document.createElement("td");
-    tdTask.textContent = t(task.name);
-    tr.appendChild(tdTask);
+uniqueTasks.forEach(task => {
+  const tr = document.createElement("tr");
+  const tdTask = document.createElement("td");
+  tdTask.textContent = t(task.name);
+  tr.appendChild(tdTask);
 
-    // Player score inputs
-    selectedPlayers.forEach(()=>{
-      const td = document.createElement("td");
-
-      const inp = document.createElement("input");
-      inp.type = "text";
-      inp.value = "0";
-      inp.className = "score-input";
-
-      // Input filtering
-      inp.addEventListener("input", () => {
-        let value = inp.value;
-        value = value.replace(/[^0-9]/g, "");
-        inp.value = value;
-      });
-
-      // empty => 0
-      inp.addEventListener("blur", () => {
-        if (inp.value === "") inp.value = "0";
-      });
-
-      inp.addEventListener("input", recalculateTotals);
-
-      td.appendChild(inp);
-      tr.appendChild(td);
-    });
-
-    tbody.appendChild(tr);
+  selectedPlayers.forEach(() => {
+    const td = document.createElement("td");
+    const inp = document.createElement("input");
+    inp.type = "number";
+    inp.value = 0;
+    inp.className = "score-input";
+    inp.addEventListener("input", () => inp.value = inp.value.replace(/[^0-9]/g, ""));
+    inp.addEventListener("blur", () => { if(inp.value==="") inp.value=0 });
+    inp.addEventListener("input", recalculateTotals);
+    td.appendChild(inp);
+    tr.appendChild(td);
   });
+
+  tbody.appendChild(tr);
+});
 
   // TOTAL ROW
   const totalRow = document.createElement("tr");
@@ -604,7 +595,8 @@ function recalculateTotals(){
 
 /* ================= SAVE SCORES ================= */
 saveScoresBtn.onclick = async () => {
-
+  console.log("DEBUG: saving scores");
+  console.log("DEBUG: tasksContainer", tasksContainer.innerHTML);
   const table = tasksContainer.querySelector("table");
   const scores = {};
 
@@ -648,7 +640,9 @@ saveScoresBtn.onclick = async () => {
 
   await fetchMyMatches();
   alert("Scores saved!");
-};
+
+  console.log("after score saved")
+console.log(scores)};
 
 /* ================= MATCH HISTORY ================= */
 function renderMatchHistory(matches){
@@ -724,7 +718,6 @@ function renderMatchHistory(matches){
 
     btn.textContent = "🔍";
     btn.title = t("show_details");
-
     btn.addEventListener("click", () => showMatchDetails(m.match_id));
 
     tdBtn.appendChild(btn);
@@ -776,40 +769,41 @@ function applyFilters(){
 }
 
 /* ================= MATCH DETAIL MODAL ================= */
-async function showMatchDetails(id){
-
+async function showMatchDetails(id) {
+console.log("SHOW MATCH DETAILS CALLED", id);
   editingMatchId = id;
 
-  const data = await fetch(
-    `/matches/${id}`,
-    {headers:{Authorization:`Bearer ${token}`}}
-  ).then(r=>r.json());
+  // Fetch match data
+  const data = await fetch(`/matches/${id}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  }).then(r => r.json());
+
+  console.log("DEBUG: data from backend 779 showmatchdetails", data);
+const firstPlayer = Object.values(data.players)[0];
+
+console.log("DEBUG: first player details", firstPlayer.details);
+console.log("DEBUG: task names", Object.keys(firstPlayer.details));
 
   const div = document.getElementById("matchDetailContent");
-  div.innerHTML = "";
+  div.innerHTML = ""; // Clear previous content to avoid duplicates
 
   /* TITLE */
-
   const title = document.createElement("h2");
   title.textContent = t("match_settings");
   div.appendChild(title);
 
   /* EDIT BUTTON */
-
   const editBtn = document.createElement("button");
   editBtn.textContent = `✏️ ${t("edit_scores")}`;
   editBtn.addEventListener("click", () => enableEditMode(id, data));
   div.appendChild(editBtn);
 
   /* MAP */
-
-  if(data.map){
-    const mapElement = renderMap(data.map);
-    div.appendChild(mapElement);
+  if (data.map) {
+    div.appendChild(renderMap(data.map));
   }
 
   /* META GRID */
-
   const metaWrapper = document.createElement("div");
   metaWrapper.className = "match-meta-grid";
 
@@ -818,12 +812,10 @@ async function showMatchDetails(id){
       <strong>${t("island")}</strong>
       <div>${t(data.island)}</div>
     </div>
-
     <div class="match-meta-card">
       <strong>${t("caves")}</strong>
       <div>${t(data.caves)}</div>
     </div>
-
     <div class="match-meta-card">
       <strong>${t("capitols")}</strong>
       <div>${data.capitols}</div>
@@ -832,14 +824,12 @@ async function showMatchDetails(id){
 
   div.appendChild(metaWrapper);
 
-  /* ================= SCORE TABLE ================= */
-    const playersArray = Object.values(data.players);
+  /* SCORE TABLE */
+  const playersArray = Object.values(data.players);
 
   if (!playersArray.length) {
-
     const noData = document.createElement("p");
     noData.textContent = t("no_scores_available");
-
     div.appendChild(noData);
     matchDetailModal.style.display = "block";
     return;
@@ -847,15 +837,15 @@ async function showMatchDetails(id){
 
   const table = document.createElement("table");
 
+  /* TABLE HEADER */
   const thead = document.createElement("thead");
   const headerRow = document.createElement("tr");
 
   const thTask = document.createElement("th");
   thTask.textContent = t("task");
-
   headerRow.appendChild(thTask);
 
-  playersArray.forEach(p=>{
+  playersArray.forEach(p => {
     const th = document.createElement("th");
     th.textContent = p.username;
     headerRow.appendChild(th);
@@ -864,40 +854,39 @@ async function showMatchDetails(id){
   thead.appendChild(headerRow);
   table.appendChild(thead);
 
-  // TBODY
-    const tbody = document.createElement("tbody");
+  /* TABLE BODY */
+  const tbody = document.createElement("tbody");
 
-  const taskNames = Object.keys(playersArray[0].details);
+  // Deduplicate task names across all players
+  const taskNames = [...new Set(playersArray.flatMap(p => Object.keys(p.details)))];
 
-  taskNames.forEach(task=>{
-
+  taskNames.forEach(task => {
+   console.log("DEBUG: rendering task row in showmatchdetails", task);
     const tr = document.createElement("tr");
 
     const tdTask = document.createElement("td");
     tdTask.textContent = t(task);
-
+    tdTask.dataset.task = task;   // store original task key
     tr.appendChild(tdTask);
 
-    playersArray.forEach(p=>{
+    playersArray.forEach(p => {
       const td = document.createElement("td");
-      td.textContent = p.details[task];
+      td.textContent = p.details[task] || 0;
       tr.appendChild(td);
     });
 
     tbody.appendChild(tr);
   });
 
-  // TOTAL ROW
-    const totalRow = document.createElement("tr");
-
+  /* TOTAL ROW */
+  const totalRow = document.createElement("tr");
   const tdTotalLabel = document.createElement("td");
   tdTotalLabel.innerHTML = `<strong>${t("total")}</strong>`;
-
   totalRow.appendChild(tdTotalLabel);
 
-  playersArray.forEach(p=>{
+  playersArray.forEach(p => {
     const td = document.createElement("td");
-    td.innerHTML = `<strong>${p.total}</strong>`;
+    td.innerHTML = `<strong>${p.total || 0}</strong>`;
     totalRow.appendChild(td);
   });
 
@@ -915,17 +904,19 @@ function closeMatchDetails(){
 
 
 function enableEditMode(matchId, data) {
+console.log("SHOW enableeditmode DETAILS CALLED", matchId);
   editingMatchId = matchId;
   const div = document.getElementById("matchDetailContent");
-  div.innerHTML = "";
+  div.innerHTML = ""; // Clear content first to avoid duplicates
 
   const playersArray = Object.values(data.players);
-  if(!playersArray.length){
+
+  if (!playersArray.length) {
     alert(t("no_players_found"));
     return;
   }
 
-  const taskNames = Object.keys(playersArray[0].details);
+  const taskNames = [...new Set(playersArray.flatMap(p => Object.keys(p.details)))];
 
   const table = document.createElement("table");
 
@@ -941,23 +932,26 @@ function enableEditMode(matchId, data) {
     th.textContent = p.username;
     trHead.appendChild(th);
   });
+
   thead.appendChild(trHead);
   table.appendChild(thead);
 
   // TBODY
   const tbody = document.createElement("tbody");
   taskNames.forEach(task => {
+   console.log("DEBUG: rendering task row in editmode", task);
     const tr = document.createElement("tr");
 
     const tdTask = document.createElement("td");
-    tdTask.textContent = t(task);
+tdTask.textContent = t(task);
+tdTask.dataset.task = task;   // store original task key
     tr.appendChild(tdTask);
 
     playersArray.forEach(p => {
       const td = document.createElement("td");
       const input = document.createElement("input");
       input.type = "number";
-      input.value = p.details[task];
+      input.value = p.details[task] || 0;
       input.className = "score-input";
       td.appendChild(input);
       tr.appendChild(td);
@@ -965,6 +959,7 @@ function enableEditMode(matchId, data) {
 
     tbody.appendChild(tr);
   });
+
   table.appendChild(tbody);
   div.appendChild(table);
 
@@ -994,6 +989,7 @@ async function saveEditedScores(){
     return;
   }
 
+console.log("SHOW saveeditedscores", matchId);
   const table = document.querySelector("#matchDetailContent table");
 
   if(!table){
@@ -1006,7 +1002,7 @@ async function saveEditedScores(){
   const scores = {};
 
   rows.forEach(row=>{
-    const task = row.cells[0].textContent;
+const task = row.cells[0].dataset.task;
     scores[task] = {};
 
     const inputs = row.querySelectorAll("input");
@@ -1044,6 +1040,13 @@ async function saveEditedScores(){
     headers:{Authorization:`Bearer ${token}`}
   }).then(r=>r.json());
 
+  console.log("DEBUG: data from backend saveeditedscore 1032", data);
+const firstPlayer = Object.values(data.players)[0];
+
+console.log("DEBUG: first player details", firstPlayer.details);
+console.log("DEBUG: task names", Object.keys(firstPlayer.details));
+
+console.log("DEBUG: scores saved, reopening match");
   showMatchDetails(matchId);
 }
 </script>

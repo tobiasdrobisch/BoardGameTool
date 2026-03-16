@@ -397,7 +397,10 @@ def update_match_scores(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user)
 ):
-
+    print(f"Updating scores for match_id={match_id}")
+    print(f"Payload received: {payload.scores}")
+    print("beginning of patch")
+    # Fetch the match
     match = db.query(models.Match).filter(
         models.Match.id == match_id
     ).first()
@@ -405,37 +408,39 @@ def update_match_scores(
     if not match:
         raise HTTPException(status_code=404, detail="Match not found")
 
+    # Only the creator can update scores
     if match.created_by != current_user.id:
         raise HTTPException(status_code=403, detail="Not allowed")
 
+    # Fetch all players of this match
     match_players = db.query(models.MatchPlayer).filter(
         models.MatchPlayer.match_id == match_id
     ).all()
 
+    # Map usernames to their MatchPlayer objects for easy lookup
     username_to_obj = {mp.username_snapshot: mp for mp in match_players}
 
+    # --- Update or create MatchResultValue for each score ---
     for task_name, player_scores in payload.scores.items():
         for username, score in player_scores.items():
-
-            if username not in username_to_obj:
+            mp_obj = username_to_obj.get(username)
+            if not mp_obj:
                 continue
 
-            mp_obj = username_to_obj[username]
-
+            # Fetch or create MatchResult for this player
             result = db.query(models.MatchResult).filter(
                 models.MatchResult.match_player_id == mp_obj.id
             ).first()
-
             if not result:
                 result = models.MatchResult(match_player_id=mp_obj.id, total_score=0)
                 db.add(result)
-                db.flush()
+                db.flush()  # ensure result.id is available
 
+            # Fetch or create MatchResultValue for this task
             value_entry = db.query(models.MatchResultValue).filter(
                 models.MatchResultValue.match_result_id == result.id,
                 models.MatchResultValue.category == task_name
             ).first()
-
             if value_entry:
                 value_entry.value = score
             else:
@@ -445,33 +450,27 @@ def update_match_scores(
                     value=score
                 ))
 
-    db.flush()
-    db.expire_all()
+    # Commit all changes to save individual task scores
+    db.commit()
 
-    totals = (
-        db.query(
-            models.MatchResult.id,
-            func.sum(models.MatchResultValue.value)
-        )
-        .join(models.MatchResultValue)
-        .group_by(models.MatchResult.id)
-        .all()
-    )
-
-    total_map = {r[0]: r[1] or 0 for r in totals}
-
+    # --- Recalculate total_score for each MatchResult ---
     match_results = db.query(models.MatchResult).filter(
         models.MatchResult.match_player_id.in_(
-            db.query(models.MatchPlayer.id)
-            .filter(models.MatchPlayer.match_id == match_id)
+            db.query(models.MatchPlayer.id).filter(
+                models.MatchPlayer.match_id == match_id
+            )
         )
     ).all()
 
     for result in match_results:
-        result.total_score = total_map.get(result.id, 0)
+        # Sum all values for this MatchResult
+        total = db.query(func.sum(models.MatchResultValue.value)).filter(
+            models.MatchResultValue.match_result_id == result.id
+        ).scalar() or 0
+        result.total_score = total
 
+    # Commit total_score updates
     db.commit()
-    db.expire_all()
 
     return {"status": "updated"}
 
