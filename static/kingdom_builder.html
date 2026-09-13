@@ -1,1033 +1,979 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Kingdom Builder Tool</title>
+  <meta charset="UTF-8">
+  <title>Kingdom Builder Tool</title>
 
-<style>
+  <style>
+    #language-switcher {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+    }
 
-  #language-switcher {
-    position: fixed;
-    top: 10px;
-    right: 10px;
-}
+    /* ===== GENERAL ===== */
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: #f5f5f5;
+    }
 
-/* ===== GENERAL ===== */
-body {
-  font-family: Arial, sans-serif;
-  padding: 20px;
-  background:#f5f5f5;
-}
+    .hidden {
+      display: none;
+    }
 
-/* Hidden state for elements before match creation */
-/* Using class instead of inline style is cleaner */
-.hidden {
-  display: none;
-}
+    h1, h3 { margin-top: 0; }
 
-h1,h3 { margin-top:0 }
+    /* ===== LAYOUT ===== */
+    .main-layout {
+      display: flex;
+      gap: 20px;
+    }
 
-/* ===== LAYOUT ===== */
-.main-layout {
-  display:flex;
-  gap:20px;
-}
+    .left-panel {
+      flex: 1;
+      max-width: 420px;
+      background: white;
+      padding: 15px;
+      border-radius: 10px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
 
-.left-panel {
-  flex:1;
-  max-width:420px;
-  background:white;
-  padding:15px;
-  border-radius:10px;
-  box-shadow:0 2px 5px rgba(0,0,0,0.1);
-}
+    .right-panel {
+      flex: 2;
+      background: white;
+      padding: 15px;
+      border-radius: 10px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
 
-.right-panel {
-  flex:2;
-  background:white;
-  padding:15px;
-  border-radius:10px;
-  box-shadow:0 2px 5px rgba(0,0,0,0.1);
-}
+    /* ===== PLAYER SELECT ===== */
+    #playerInputContainer { position: relative; margin-top: 10px; }
+    #playerInput { width: 100%; padding: 6px; }
 
-/* ===== PLAYER SELECT ===== */
-#playerInputContainer { position:relative; margin-top:10px; }
-#playerInput { width:100%; padding:6px; }
+    #suggestions {
+      border: 1px solid #ccc;
+      max-height: 150px;
+      overflow-y: auto;
+      position: absolute;
+      background: white;
+      width: 100%;
+      z-index: 10;
+    }
 
-#suggestions {
-  border:1px solid #ccc;
-  max-height:150px;
-  overflow-y:auto;
-  position:absolute;
-  background:white;
-  width:100%;
-  z-index:10;
-}
+    .suggestion-item {
+      padding: 5px;
+      cursor: pointer;
+    }
+    .suggestion-item:hover { background: #eee; }
 
-.suggestion-item {
-  padding:5px;
-  cursor:pointer;
-}
-.suggestion-item:hover { background:#eee; }
+    .player-tag {
+      display: inline-block;
+      padding: 5px 10px;
+      background: #007bff;
+      color: white;
+      border-radius: 15px;
+      margin: 3px;
+      cursor: pointer;
+    }
+    .player-tag:hover { background: #0056b3; }
 
-.player-tag {
-  display:inline-block;
-  padding:5px 10px;
-  background:#007bff;
-  color:white;
-  border-radius:15px;
-  margin:3px;
-  cursor:pointer;
-}
-.player-tag:hover { background:#0056b3; }
+    /* ===== BUTTONS ===== */
+    button {
+      margin-top: 10px;
+      padding: 8px 12px;
+      border: none;
+      border-radius: 5px;
+      background: #007bff;
+      color: white;
+      cursor: pointer;
+    }
 
-/* ===== BUTTONS ===== */
-button {
-  margin-top:10px;
-  padding:8px 12px;
-  border:none;
-  border-radius:5px;
-  background:#007bff;
-  color:white;
-  cursor:pointer;
-}
+    button:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+    }
 
-button:disabled {
-  opacity:.5;
-  cursor:not-allowed;
-}
+    button:hover { background: #0056b3; }
 
-button:hover { background:#0056b3; }
+    /* ===== TABLE ===== */
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 10px;
+      background: white;
+    }
 
-/* ===== TABLE ===== */
-table {
-  border-collapse:collapse;
-  width:100%;
-  margin-top:10px;
-  background:white;
-}
+    table, th, td {
+      border: 1px solid #ccc;
+    }
 
-table, th, td {
-  border:1px solid #ccc;
-}
+    th, td {
+      padding: 6px;
+      text-align: center;
+    }
 
-th, td {
-  padding:6px;
-  text-align:center;
-}
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+    }
 
-/* number arrows remove */
-input[type=number]::-webkit-inner-spin-button,
-input[type=number]::-webkit-outer-spin-button {
-  -webkit-appearance:none;
-}
+    input.score-input {
+      width: 60px;
+      text-align: center;
+    }
 
-input.score-input {
-  width:60px;
-  text-align:center;
-}
+    /* ===== MAP GRID ===== */
+    .map-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-top: 10px;
+    }
 
-/* ===== MAP GRID ===== */
-.map-grid {
-  display:grid;
-  grid-template-columns:repeat(2,1fr);
-  gap:10px;
-  margin-top:10px;
-}
+    .map-tile {
+      border: 1px solid #444;
+      padding: 10px;
+      background: #fafafa;
+      border-radius: 6px;
+    }
 
-.map-tile {
-  border:1px solid #444;
-  padding:10px;
-  background:#fafafa;
-  border-radius:6px;
-}
+    .map-title {
+      font-weight: bold;
+    }
 
-.map-title {
-  font-weight:bold;
-}
+    .map-meta {
+      font-size: .9em;
+      color: #555;
+    }
 
-.map-meta {
-  font-size:.9em;
-  color:#555;
-}
+    /* ===== MODAL ===== */
+    #matchDetailModal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.6);
+      padding: 40px;
+      z-index: 9999;
+    }
 
-/* ===== MODAL ===== */
-#matchDetailModal {
-  display:none;
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.6);
-  padding:40px;
-  z-index:9999;
-}
+    #matchDetailBox {
+      background: white;
+      padding: 20px;
+      max-width: 900px;
+      margin: auto;
+      border-radius: 10px;
+    }
 
-#matchDetailBox {
-  background:white;
-  padding:20px;
-  max-width:900px;
-  margin:auto;
-  border-radius:10px;
-}
+    .match-meta-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+      margin: 15px 0 20px 0;
+    }
 
-  .match-meta-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 15px;
-  margin: 15px 0 20px 0;
-}
+    .match-meta-card {
+      background: #fafafa;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+      text-align: center;
+    }
 
-.match-meta-card {
-  background: #fafafa;
-  padding: 12px;
-  border-radius: 8px;
-  border: 1px solid #ddd;
-  text-align: center;
-}
+    .player-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
 
-  .player-row{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  gap:10px;
-}
+    .player-left {
+      flex: 1;
+    }
 
-.player-left{
-  flex:1;
-}
-
-.player-right{
-  display:flex;
-  align-items:center;
-  gap:6px;
-}
-</style>
+    .player-right {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+  </style>
 </head>
 
 <body>
-<div id="language-switcher">
+
+  <div id="language-switcher">
     <button onclick="loadLanguage('de')">DE</button>
     <button onclick="loadLanguage('en')">EN</button>
-</div>
-
-<!-- MATCH DETAIL MODAL -->
-<div id="matchDetailModal">
-  <div id="matchDetailBox">
-    <button onclick="closeMatchDetails()" data-i18n="close"></button>
-    <div id="matchDetailContent"></div>
-  </div>
-</div>
-
-<div class="main-layout">
-
-<!-- LEFT PANEL -->
-<div class="left-panel">
-  <form autocomplete="off">
-<h1>Kingdom Builder</h1>
-
-<label data-i18n="player_count"></label>
-
-<select id="playerCount">
-  <option value="" data-i18n="select_players"></option>
-
-  <option value="2" data-i18n="players_count" data-count="2"></option>
-  <option value="3" data-i18n="players_count" data-count="3"></option>
-  <option value="4" data-i18n="players_count" data-count="4"></option>
-  <option value="5" data-i18n="players_count" data-count="5"></option>
-</select>
-
-<h3 data-i18n="select_players"></h3>
-<div id="playerInputContainer">
-  <input id="playerInput" data-i18n-placeholder="enter_player_name" disabled>
-  <div id="suggestions"></div>
-</div>
-
-<div class="player-row">
-  <div class="player-left">
-    <div id="selectedPlayers"></div>
-    <p data-i18n="selected_players">: <b id="playerCountDisplay">0</b></p>
   </div>
 
-  <div class="player-right">
-    <label for="startPlayer">Start Player:</label>
-    <select id="startPlayer"></select>
+  <!-- MATCH DETAIL MODAL -->
+  <div id="matchDetailModal">
+    <div id="matchDetailBox">
+      <button onclick="closeMatchDetails()" data-i18n="close"></button>
+      <div id="matchDetailContent"></div>
+    </div>
   </div>
-</div>
+
+  <div class="main-layout">
+
+    <!-- LEFT PANEL -->
+    <div class="left-panel">
+      <form autocomplete="off">
+        <h1>Kingdom Builder</h1>
+
+        <label data-i18n="player_count"></label>
+
+        <select id="playerCount">
+          <option value="" data-i18n="select_players"></option>
+          <option value="2" data-i18n="players_count" data-count="2"></option>
+          <option value="3" data-i18n="players_count" data-count="3"></option>
+          <option value="4" data-i18n="players_count" data-count="4"></option>
+          <option value="5" data-i18n="players_count" data-count="5"></option>
+        </select>
+
+        <h3 data-i18n="select_players"></h3>
+
+        <div id="playerInputContainer">
+          <input id="playerInput" data-i18n-placeholder="enter_player_name" disabled>
+          <div id="suggestions"></div>
+        </div>
+
+        <div class="player-row">
+          <div class="player-left">
+            <div id="selectedPlayers"></div>
+            <p data-i18n="selected_players">: <b id="playerCountDisplay">0</b></p>
+          </div>
+
+          <div class="player-right">
+            <label for="startPlayer">Start Player:</label>
+            <select id="startPlayer"></select>
+          </div>
+        </div>
+
+        <button id="startGameBtn" disabled data-i18n="create_match"></button>
+      </form>
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div class="right-panel">
+      <h3 data-i18n="match_settings"></h3>
+      <div id="matchSettings">No match created yet!!</div>
+
+      <h3 id="tasks_and_scores" data-i18n="tasks_scores" class="hidden"></h3>
+      <div id="tasksContainer"></div>
+
+      <button id="saveScoresBtn" class="hidden" data-i18n="save_scores"></button>
+    </div>
+
+  </div>
+
+  <hr>
+
+  <!-- MATCH HISTORY -->
+  <h3 data-i18n="played_matches"></h3>
+
+  <div id="matchFilters">
+    <label data-i18n="player_count"></label>
+
+    <select id="filterPlayerCount">
+      <option value="" data-i18n="all"></option>
+      <option value="2" data-i18n="players_count" data-count="2"></option>
+      <option value="3" data-i18n="players_count" data-count="3"></option>
+      <option value="4" data-i18n="players_count" data-count="4"></option>
+      <option value="5" data-i18n="players_count" data-count="5"></option>
+    </select>
+
+    <label data-i18n="player_name"></label>
+    <input id="filterPlayerName" data-i18n-placeholder="enter_name">
+  </div>
+
+  <div id="matchHistory"></div>
+
+  <hr>
+
+  <!-- STATISTICS -->
+  <h3 data-i18n="statistics"></h3>
+
+  <div style="display:flex; gap:15px; align-items:center; flex-wrap:wrap; margin-bottom:15px;">
+    <label><b>View:</b></label>
+
+    <select id="statsView">
+      <option value="totalScores">Total Scores</option>
+      <option value="wins">Wins</option>
+      <option value="tasksPlayed">Tasks played count</option>
+      <option value="scoreProgress">Score progress (Line Chart)</option>
+    </select>
+
+    <label><b>Compare Players:</b></label>
+    <select id="comparePlayers" multiple size="4" style="min-width:200px;"></select>
+  </div>
+
+  <div id="visualisation"></div>
 
 
-<button id="startGameBtn" disabled data-i18n="create_match"></button>
-    </form>
-</div>
+  <!-- IMPORTANT: Scripts at the end -->
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="/script/i18n.js"></script>
+  <script src="/script/statistics.js"></script>
 
-<!-- RIGHT PANEL -->
-<div class="right-panel">
-<h3 data-i18n="match_settings"></h3>
-<!-- <div id="matchSettings" data-i18n="no_match_created_yet"></div>*/ -->
-<div id="matchSettings"> No match created yet!!</div>
+  <script>
+    /* ================= AUTH ================= */
+    const token = localStorage.getItem("token");
+    if (!token) window.location.href = "/static/index.html";
 
-<h3 id="tasks_and_scores" data-i18n="tasks_scores" class="hidden"></h3>
-<div id="tasksContainer"></div>
-<button id="saveScoresBtn"
-        class="hidden"
-        data-i18n="save_scores">
-</button>
-</div>
-
-</div>
-
-<hr>
-
-<!-- MATCH HISTORY -->
-<h3 data-i18n="played_matches"></h3>
-
-<div id="matchFilters">
-
-<label data-i18n="player_count"></label>
-
-<select id="filterPlayerCount">
-  <option value="" data-i18n="all"></option>
-
-  <option value="2" data-i18n="players_count" data-count="2"></option>
-  <option value="3" data-i18n="players_count" data-count="3"></option>
-  <option value="4" data-i18n="players_count" data-count="4"></option>
-  <option value="5" data-i18n="players_count" data-count="5"></option>
-</select>
-
-<label data-i18n="player_name"></label>
-
-<input id="filterPlayerName" data-i18n-placeholder="enter_name">
-
-</div>
-
-<div id="matchHistory"></div>
-
-<script src="/script/i18n.js"></script>
-<script>
-/* ================= AUTH ================= */
-const token = localStorage.getItem("token");
-if (!token) window.location.href="/static/index.html";
-
-
-if (!localStorage.getItem("token")) {
-  window.location.replace("/");
-}
-
-/* ================= GLOBALS ================= */
-let users=[], selectedPlayers=[], currentTasks=[], currentMatch=null, MAX_PLAYERS=0, allMatches=[];
-let editingMatchId = null;
-
-const input = playerInput;
-const suggestions = document.getElementById("suggestions");
-const selectedContainer = selectedPlayersDiv = document.getElementById("selectedPlayers");
-const countDisplay = playerCountDisplay;
-const startBtn = startGameBtn;
-const matchSettingsDiv = matchSettings;
-const tasksContainer = tasksContainerDiv = document.getElementById("tasksContainer");
-const saveScoresBtn = document.getElementById("saveScoresBtn");
-
-window.addEventListener("DOMContentLoaded", async () => {
-
-  // UI STATE RESET
-  playerCount.value = "";
-  MAX_PLAYERS = 0;
-  selectedPlayers = [];
-  renderSelectedPlayers();
-  renderStartPlayerSelect()
-  saveScoresBtn.classList.add("hidden");
-  updateStartButton();
-
-  await fetchUsers();
-  await fetchMyMatches();
-});
-
-
-/* ================= API LOAD ================= */
-async function fetchUsers(){
-  users = await fetch("/users",{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.json());
-}
-
-async function fetchMyMatches(){
-  allMatches = await fetch("/matches/my",{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.json());
-  renderMatchHistory(allMatches);
-}
-
-/* ================= PLAYER SELECTION ================= */
-playerCount.addEventListener("change", e=>{
-  MAX_PLAYERS = +e.target.value || 0;
-  selectedPlayers=[];
-  renderSelectedPlayers();
-  input.disabled=!MAX_PLAYERS;
-  updateStartButton();
-});
-
-input.addEventListener("input", ()=>{
-  const q=input.value.toLowerCase();
-  suggestions.innerHTML="";
-  if(!q) return;
-
-  users.filter(u=>u.name.toLowerCase().includes(q) && !selectedPlayers.includes(u.name))
-       .forEach(u=>{
-        const d=document.createElement("div");
-        d.textContent=u.name;
-        d.className="suggestion-item";
-        d.onclick=()=>addPlayer(u.name);
-        suggestions.appendChild(d);
-       });
-});
-
-function addPlayer(name){
-  if(selectedPlayers.length>=MAX_PLAYERS) return;
-  selectedPlayers.push(name);
-  input.value="";
-  suggestions.innerHTML="";
-  renderSelectedPlayers();
-  renderStartPlayerSelect()
-  updateStartButton();
-}
-
-function removePlayer(name){
-  selectedPlayers=selectedPlayers.filter(p=>p!==name);
-  renderSelectedPlayers();
-  renderStartPlayerSelect();
-  updateStartButton();
-}
-
-function renderSelectedPlayers(){
-  selectedContainer.innerHTML="";
-  selectedPlayers.forEach(p=>{
-    const s=document.createElement("span");
-    s.textContent=p;
-    s.className="player-tag";
-    s.onclick=()=>removePlayer(p);
-    selectedContainer.appendChild(s);
-  });
-  countDisplay.textContent=selectedPlayers.length;
-}
-
-function updateStartButton(){
-  startBtn.disabled = !(selectedPlayers.length===MAX_PLAYERS && MAX_PLAYERS>0);
-}
-
-/* ================= START MATCH ================= */
-startBtn.onclick = async () => {
-
-  if(startBtn.disabled) return;
-
-  startBtn.disabled = true;
-
-  try {
-
-const startPlayer = document.getElementById("startPlayer").value
-
-    const res = await fetch("/start_kingdom_builder", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-          players: selectedPlayers,
-          start_player: startPlayer
-          })
-    });
-
-    currentMatch = await res.json();
-    if(!res.ok){
-      alert(JSON.stringify(currentMatch));
-      return;
+    if (!localStorage.getItem("token")) {
+      window.location.replace("/");
     }
 
-    /* Match was successfully created */
-    /* Show scoring UI now */
-    renderMatchSettings(currentMatch);
-    currentTasks = [...new Map(currentMatch.tasks.map(t => [t.name, t])).values()];
-    renderTasks();
+    /* ================= GLOBALS ================= */
+    let users = [], selectedPlayers = [], currentTasks = [], currentMatch = null, MAX_PLAYERS = 0, allMatches = [];
+    let editingMatchId = null;
 
-    /* IMPORTANT */
-    /* Reveal save button after match creation */
-    saveScoresBtn.classList.remove("hidden");
-    tasks_and_scores.classList.remove("hidden");
+    const input = document.getElementById("playerInput");
+    const suggestions = document.getElementById("suggestions");
+    const selectedContainer = document.getElementById("selectedPlayers");
+    const countDisplay = document.getElementById("playerCountDisplay");
+    const startBtn = document.getElementById("startGameBtn");
+    const matchSettingsDiv = document.getElementById("matchSettings");
+    const tasksContainer = document.getElementById("tasksContainer");
+    const saveScoresBtn = document.getElementById("saveScoresBtn");
 
-    await fetchMyMatches();
+    window.addEventListener("DOMContentLoaded", async () => {
+      playerCount.value = "";
+      MAX_PLAYERS = 0;
+      selectedPlayers = [];
+      renderSelectedPlayers();
+      renderStartPlayerSelect();
+      saveScoresBtn.classList.add("hidden");
+      updateStartButton();
 
-  } finally {
-    startBtn.disabled = false;
-  }
-};
-
-/* ================= MAP & SETTINGS ================= */
-function renderMatchSettings(m){
-  matchSettingsDiv.innerHTML = "";
-  // Map-Grid
-  matchSettingsDiv.appendChild(renderMap(m.map));
-
-  // Info-fields
-  const infoFields = [
-    { label: t("island"), value: m.island },
-    { label: t("caves"), value: m.caves },
-    { label: t("capitols"), value: m.capitols }
-  ];
-
-  infoFields.forEach(field => {
-    // Translate only strings; keep integers as-is
-    const value = typeof field.value === "string" ? t(field.value) : field.value;
-    const p = document.createElement("p");
-    p.innerHTML = `<b>${field.label}:</b> ${value}`;
-    matchSettingsDiv.appendChild(p);
-  });
-}
-
-
-function renderMap(map){
-  const grid=document.createElement("div");
-  grid.className="map-grid";
-  map.forEach(([id,exp,name, , , , , ori])=>{
-    const d=document.createElement("div");
-    d.className="map-tile";
-    d.innerHTML=`<div class="map-title">${t(name)}</div>
-                 <div class="map-meta">${exp} · ${ori==="upright"?t("upright"):t("reversed")}</div>`;
-    grid.appendChild(d);
-  });
-  return grid;
-}
-
-/* ================= TASK TABLE ================= */
-function renderTasks(){
-  tasksContainer.innerHTML = "";
-
-  if(!currentTasks?.length || !currentMatch){
-    // no current match created
-    tasksContainer.textContent = t("no_match_created_yet");
-    saveScoresBtn.classList.add("hidden");
-    return;
-  }
-
-  const table = document.createElement("table");
-
-  // HEADER
-  const thead = document.createElement("thead");
-  const hr = document.createElement("tr");
-
-  const thTask = document.createElement("th");
-  thTask.textContent = t("task");
-  hr.appendChild(thTask);
-
-  selectedPlayers.forEach(p=>{
-    const th = document.createElement("th");
-    th.textContent = p;
-    hr.appendChild(th);
-  });
-
-  thead.appendChild(hr);
-  table.appendChild(thead);
-
-  // BODY
-  const tbody = document.createElement("tbody");
-
-  // Remove duplicate tasks by name
-const uniqueTasks = [...new Map(currentTasks.map(t => [t.name, t])).values()];
-
-uniqueTasks.forEach(task => {
-  const tr = document.createElement("tr");
-  const tdTask = document.createElement("td");
-  tdTask.textContent = t(task.name);
-
-  tdTask.dataset.task = task.name; //store original task name
-  tr.appendChild(tdTask);
-
-  selectedPlayers.forEach(() => {
-    const td = document.createElement("td");
-    const inp = document.createElement("input");
-    inp.type = "number";
-    inp.value = 0;
-    inp.className = "score-input";
-    inp.addEventListener("input", () => inp.value = inp.value.replace(/[^0-9]/g, ""));
-    inp.addEventListener("blur", () => { if(inp.value==="") inp.value=0 });
-    inp.addEventListener("input", recalculateTotals);
-    td.appendChild(inp);
-    tr.appendChild(td);
-  });
-
-  tbody.appendChild(tr);
-});
-
-  // TOTAL ROW
-  const totalRow = document.createElement("tr");
-  totalRow.id = "totalRow";
-
-  const tdTotal = document.createElement("td");
-  tdTotal.innerHTML = `<b>${t("total")}</b>`;
-  totalRow.appendChild(tdTotal);
-
-  selectedPlayers.forEach(()=>{
-    const td = document.createElement("td");
-    td.textContent = "0";
-    totalRow.appendChild(td);
-  });
-
-  tbody.appendChild(totalRow);
-  table.appendChild(tbody);
-  tasksContainer.appendChild(table);
-
-  // Erst jetzt Save Button aktivieren
-  saveScoresBtn.disabled = false;
-}
-
-
-/* ================= TOTALS ================= */
-function recalculateTotals(){
-  const table=tasksContainer.querySelector("table");
-  if(!table) return;
-  const totals=Object.fromEntries(selectedPlayers.map(p=>[p,0]));
-
-  table.querySelectorAll("tbody tr").forEach(row=>{
-    if(row.id==="totalRow") return;
-    selectedPlayers.forEach((p,i)=>{
-      const v=parseInt(row.cells[i+1].querySelector("input")?.value)||0;
-      totals[p]+=v;
+      await fetchUsers();
+      await fetchMyMatches();
     });
-  });
 
-  const totalRow=document.getElementById("totalRow");
-  selectedPlayers.forEach((p,i)=> totalRow.cells[i+1].textContent=totals[p]);
-}
+    /* ================= API LOAD ================= */
+    async function fetchUsers() {
+      users = await fetch("/users", { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json());
+    }
 
-/* ================= SAVE SCORES ================= */
-saveScoresBtn.onclick = async () => {
-  const table = tasksContainer.querySelector("table");
-  const scores = {};
+    async function fetchMyMatches() {
+      allMatches = await fetch("/matches/my", { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json());
+      renderMatchHistory(allMatches);
 
-  table.querySelectorAll("tbody tr").forEach(row => {
-    if (row.id === "totalRow") {
-        return};
-    const task = row.cells[0].dataset.task;
-    scores[task] = {};
-    selectedPlayers.forEach((p, i) => {
-      const input = row.cells[i + 1].querySelector("input");
-      const v = parseInt(input.value) || 0;
-      scores[task][p] = v;
-    });
-  });
-  const res = await fetch(`/matches/${currentMatch.match_id}/scores`, {
-  method: "PATCH",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      scores
-    })
-  });
-
-  if (!res.ok) {
-    alert("Save failed");
-    return;
-  }
-
-  // deactivate button
-  saveScoresBtn.disabled = true;
-
-  // deactivate input
-  table.querySelectorAll("input").forEach(inp => {
-    inp.disabled = true;
-  });
-
-  await fetchMyMatches();
-  alert("Scores saved!");
-
-};
-
-/* ================= MATCH HISTORY ================= */
-function renderMatchHistory(matches){
-  const container = document.getElementById("matchHistory");
-  container.innerHTML = "";
-
-  if(!matches.length){
-    container.textContent = t("no_matches_yet");
-    return;
-  }
-
-  matches.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at))
-
-  const table = document.createElement("table");
-
-  const thead = document.createElement("thead");
-  const headerRow = document.createElement("tr");
-
-  const thDate = document.createElement("th");
-  thDate.setAttribute("data-i18n","date");
-
-  const thPlayers = document.createElement("th");
-  thPlayers.setAttribute("data-i18n","players");
-
-  const thStartPlayer = document.createElement("th");   // NEU
-  thStartPlayer.setAttribute("data-i18n","start_player");
-
-  const thScores = document.createElement("th");
-  thScores.setAttribute("data-i18n","scores");
-
-  const thDetails = document.createElement("th");
-  thDetails.setAttribute("data-i18n","details");
-
-  headerRow.append(thDate, thPlayers, thStartPlayer, thScores, thDetails);
-  thead.appendChild(headerRow);
-  table.appendChild(thead);
-
-  const tbody = document.createElement("tbody");
-
-  matches.forEach(m => {
-
-    const tr = document.createElement("tr");
-
-    const tdDate = document.createElement("td");
-    tdDate.textContent = m.date;
-
-    const tdCount = document.createElement("td");
-    tdCount.textContent = m.player_count;
-
-    const tdStartPlayer = document.createElement("td");  // NEU
-    tdStartPlayer.textContent = m.start_player || "x";
-
-    const tdScores = document.createElement("td");
-    const scoresArray = Object.values(m.scores);
-    const max = Math.max(...scoresArray.map(s => s.score));
-
-    scoresArray.forEach((s, i) => {
-
-      const element = document.createElement(
-        s.score === max ? "b" : "span"
-      );
-
-      element.textContent = `${s.username}:${s.score}`;
-      tdScores.appendChild(element);
-
-      if (i < scoresArray.length - 1) {
-        tdScores.appendChild(document.createTextNode(" | "));
+      // statistics setup
+      if (typeof populateComparePlayers === "function") {
+        populateComparePlayers(allMatches);
       }
-    });
 
-    const tdBtn = document.createElement("td");
-    const btn = document.createElement("button");
-
-    btn.textContent = "🔍";
-    btn.title = t("show_details");
-    btn.addEventListener("click", () => showMatchDetails(m.match_id));
-
-    tdBtn.appendChild(btn);
-
-    tr.append(tdDate, tdCount, tdStartPlayer, tdScores, tdBtn); // Reihenfolge angepasst
-    tbody.appendChild(tr);
-
-  });
-
-  table.appendChild(tbody);
-  container.appendChild(table);
-
-loadLanguage(currentLang)
-
-}
-
-/* ================= FILTERS ================= */
-filterPlayerCount.onchange=applyFilters;
-filterPlayerName.oninput=applyFilters;
-
-function applyFilters(){
-
-  const countFilter = filterPlayerCount.value;
-  const nameFilter = filterPlayerName.value
-                        .toLowerCase()
-                        .trim()
-                        .slice(0,30);
-
-  const filteredMatches = allMatches.filter(match => {
-
-    // Player count filter
-    if(countFilter && match.player_count != countFilter){
-      return false;
+      if (typeof updateStatisticsView === "function") {
+        updateStatisticsView();
+      }
     }
 
-    // Player name filter
-    if(nameFilter){
-      const playerMatch = match.players?.some(player =>
-        player?.username?.toLowerCase()?.includes(nameFilter)
-      );
+    /* ================= PLAYER SELECTION ================= */
+    playerCount.addEventListener("change", e => {
+      MAX_PLAYERS = +e.target.value || 0;
+      selectedPlayers = [];
+      renderSelectedPlayers();
+      input.disabled = !MAX_PLAYERS;
+      updateStartButton();
+    });
 
-      if(!playerMatch) return false;
+    input.addEventListener("input", () => {
+      const q = input.value.toLowerCase();
+      suggestions.innerHTML = "";
+      if (!q) return;
+
+      users.filter(u => u.name.toLowerCase().includes(q) && !selectedPlayers.includes(u.name))
+        .forEach(u => {
+          const d = document.createElement("div");
+          d.textContent = u.name;
+          d.className = "suggestion-item";
+          d.onclick = () => addPlayer(u.name);
+          suggestions.appendChild(d);
+        });
+    });
+
+    function addPlayer(name) {
+      if (selectedPlayers.length >= MAX_PLAYERS) return;
+      selectedPlayers.push(name);
+      input.value = "";
+      suggestions.innerHTML = "";
+      renderSelectedPlayers();
+      renderStartPlayerSelect();
+      updateStartButton();
     }
 
-    return true;
-  });
-
-  renderMatchHistory(filteredMatches);
-}
-
-/* ================= MATCH DETAIL MODAL ================= */
-async function showMatchDetails(id) {
-  editingMatchId = id;
-
-  // Fetch match data
-  const data = await fetch(`/matches/${id}`, {
-    headers: { Authorization: `Bearer ${token}` }
-  }).then(r => r.json());
-
-
-  const div = document.getElementById("matchDetailContent");
-  div.innerHTML = ""; // Clear previous content to avoid duplicates
-
-  /* TITLE */
-  const title = document.createElement("h2");
-  title.textContent = t("match_settings");
-  div.appendChild(title);
-
-  /* EDIT BUTTON */
-  const editBtn = document.createElement("button");
-  editBtn.textContent = `✏️ ${t("edit_scores")}`;
-  editBtn.addEventListener("click", () => enableEditMode(id, data));
-  //div.appendChild(editBtn);
-
-  /* MAP */
-  if (data.map) {
-    div.appendChild(renderMap(data.map));
-  }
-
-  /* META GRID */
-  const metaWrapper = document.createElement("div");
-  metaWrapper.className = "match-meta-grid";
-
-  metaWrapper.innerHTML = `
-    <div class="match-meta-card">
-      <strong>${t("island")}</strong>
-      <div>${t(data.island)}</div>
-    </div>
-    <div class="match-meta-card">
-      <strong>${t("caves")}</strong>
-      <div>${t(data.caves)}</div>
-    </div>
-    <div class="match-meta-card">
-      <strong>${t("capitols")}</strong>
-      <div>${data.capitols}</div>
-    </div>
-  `;
-
-  div.appendChild(metaWrapper);
-
-  /* SCORE TABLE */
-  const playersArray = Object.values(data.players);
-
-  if (!playersArray.length) {
-    const noData = document.createElement("p");
-    noData.textContent = t("no_scores_available");
-    div.appendChild(noData);
-    matchDetailModal.style.display = "block";
-    return;
-  }
-
-  const table = document.createElement("table");
-
-  /* TABLE HEADER */
-  const thead = document.createElement("thead");
-  const headerRow = document.createElement("tr");
-
-  const thTask = document.createElement("th");
-  thTask.textContent = t("task");
-  headerRow.appendChild(thTask);
-
-  playersArray.forEach(p => {
-    const th = document.createElement("th");
-    th.textContent = p.username;
-    headerRow.appendChild(th);
-  });
-
-  thead.appendChild(headerRow);
-  table.appendChild(thead);
-
-  /* TABLE BODY */
-  const tbody = document.createElement("tbody");
-
-  // Deduplicate task names across all players
-  const taskNames = [...new Set(playersArray.flatMap(p => Object.keys(p.details)))];
-
-  taskNames.forEach(task => {
-    const tr = document.createElement("tr");
-
-    const tdTask = document.createElement("td");
-    tdTask.textContent = t(task);
-    tdTask.dataset.task = task;   // store original task key e.g. task_ambassador
-
-    tr.appendChild(tdTask);
-
-    playersArray.forEach(p => {
-      const td = document.createElement("td");
-      td.textContent = p.details[task] || 0;
-      tr.appendChild(td);
-    });
-
-    tbody.appendChild(tr);
-  });
-
-  /* TOTAL ROW */
-  const totalRow = document.createElement("tr");
-  const tdTotalLabel = document.createElement("td");
-  tdTotalLabel.innerHTML = `<strong>${t("total")}</strong>`;
-  totalRow.appendChild(tdTotalLabel);
+    function removePlayer(name) {
+      selectedPlayers = selectedPlayers.filter(p => p !== name);
+      renderSelectedPlayers();
+      renderStartPlayerSelect();
+      updateStartButton();
+    }
+
+    function renderSelectedPlayers() {
+      selectedContainer.innerHTML = "";
+      selectedPlayers.forEach(p => {
+        const s = document.createElement("span");
+        s.textContent = p;
+        s.className = "player-tag";
+        s.onclick = () => removePlayer(p);
+        selectedContainer.appendChild(s);
+      });
+      countDisplay.textContent = selectedPlayers.length;
+    }
+
+    function updateStartButton() {
+      startBtn.disabled = !(selectedPlayers.length === MAX_PLAYERS && MAX_PLAYERS > 0);
+    }
+
+    /* ================= START MATCH ================= */
+    startBtn.onclick = async () => {
+      if (startBtn.disabled) return;
+
+      startBtn.disabled = true;
+
+      try {
+        const startPlayer = document.getElementById("startPlayer").value;
+
+        const res = await fetch("/start_kingdom_builder", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            players: selectedPlayers,
+            start_player: startPlayer
+          })
+        });
+
+        currentMatch = await res.json();
+        if (!res.ok) {
+          alert(JSON.stringify(currentMatch));
+          return;
+        }
+
+        renderMatchSettings(currentMatch);
+        currentTasks = [...new Map(currentMatch.tasks.map(t => [t.name, t])).values()];
+        renderTasks();
+
+        saveScoresBtn.classList.remove("hidden");
+        tasks_and_scores.classList.remove("hidden");
+
+        await fetchMyMatches();
+      } finally {
+        startBtn.disabled = false;
+      }
+    };
+
+    /* ================= MAP & SETTINGS ================= */
+    function renderMatchSettings(m) {
+      matchSettingsDiv.innerHTML = "";
+      matchSettingsDiv.appendChild(renderMap(m.map));
+
+      const infoFields = [
+        { label: t("island"), value: m.island },
+        { label: t("caves"), value: m.caves },
+        { label: t("capitols"), value: m.capitols }
+      ];
+
+      infoFields.forEach(field => {
+        const value = typeof field.value === "string" ? t(field.value) : field.value;
+        const p = document.createElement("p");
+        p.innerHTML = `<b>${field.label}:</b> ${value}`;
+        matchSettingsDiv.appendChild(p);
+      });
+    }
+
+    function renderMap(map) {
+      const grid = document.createElement("div");
+      grid.className = "map-grid";
+      map.forEach(([id, exp, name, , , , , ori]) => {
+        const d = document.createElement("div");
+        d.className = "map-tile";
+        d.innerHTML = `<div class="map-title">${t(name)}</div>
+                       <div class="map-meta">${exp} · ${ori === "upright" ? t("upright") : t("reversed")}</div>`;
+        grid.appendChild(d);
+      });
+      return grid;
+    }
+
+    /* ================= TASK TABLE ================= */
+    function renderTasks() {
+      tasksContainer.innerHTML = "";
+
+      if (!currentTasks?.length || !currentMatch) {
+        tasksContainer.textContent = t("no_match_created_yet");
+        saveScoresBtn.classList.add("hidden");
+        return;
+      }
+
+      const table = document.createElement("table");
+
+      const thead = document.createElement("thead");
+      const hr = document.createElement("tr");
+
+      const thTask = document.createElement("th");
+      thTask.textContent = t("task");
+      hr.appendChild(thTask);
+
+      selectedPlayers.forEach(p => {
+        const th = document.createElement("th");
+        th.textContent = p;
+        hr.appendChild(th);
+      });
+
+      thead.appendChild(hr);
+      table.appendChild(thead);
+
+      const tbody = document.createElement("tbody");
+
+      const uniqueTasks = [...new Map(currentTasks.map(t => [t.name, t])).values()];
+
+      uniqueTasks.forEach(task => {
+        const tr = document.createElement("tr");
+        const tdTask = document.createElement("td");
+        tdTask.textContent = t(task.name);
+        tdTask.dataset.task = task.name;
+        tr.appendChild(tdTask);
+
+        selectedPlayers.forEach(() => {
+          const td = document.createElement("td");
+          const inp = document.createElement("input");
+          inp.type = "number";
+          inp.value = 0;
+          inp.className = "score-input";
+          inp.addEventListener("input", () => inp.value = inp.value.replace(/[^0-9]/g, ""));
+          inp.addEventListener("blur", () => { if (inp.value === "") inp.value = 0; });
+          inp.addEventListener("input", recalculateTotals);
+          td.appendChild(inp);
+          tr.appendChild(td);
+        });
+
+        tbody.appendChild(tr);
+      });
+
+      const totalRow = document.createElement("tr");
+      totalRow.id = "totalRow";
+
+      const tdTotal = document.createElement("td");
+      tdTotal.innerHTML = `<b>${t("total")}</b>`;
+      totalRow.appendChild(tdTotal);
+
+      selectedPlayers.forEach(() => {
+        const td = document.createElement("td");
+        td.textContent = "0";
+        totalRow.appendChild(td);
+      });
+
+      tbody.appendChild(totalRow);
+      table.appendChild(tbody);
+      tasksContainer.appendChild(table);
+
+      saveScoresBtn.disabled = false;
+    }
+
+    function recalculateTotals() {
+      const table = tasksContainer.querySelector("table");
+      if (!table) return;
+
+      const totals = Object.fromEntries(selectedPlayers.map(p => [p, 0]));
 
-  playersArray.forEach(p => {
-    const td = document.createElement("td");
-    td.innerHTML = `<strong>${p.total || 0}</strong>`;
-    totalRow.appendChild(td);
-  });
+      table.querySelectorAll("tbody tr").forEach(row => {
+        if (row.id === "totalRow") return;
 
-  tbody.appendChild(totalRow);
-  table.appendChild(tbody);
+        selectedPlayers.forEach((p, i) => {
+          const v = parseInt(row.cells[i + 1].querySelector("input")?.value) || 0;
+          totals[p] += v;
+        });
+      });
 
-  div.appendChild(table);
+      const totalRow = document.getElementById("totalRow");
+      selectedPlayers.forEach((p, i) => totalRow.cells[i + 1].textContent = totals[p]);
+    }
 
-  matchDetailModal.style.display = "block";
-}
+    /* ================= SAVE SCORES ================= */
+    saveScoresBtn.onclick = async () => {
+      const table = tasksContainer.querySelector("table");
+      const scores = {};
 
-function closeMatchDetails(){
-  matchDetailModal.style.display="none";
-}
+      table.querySelectorAll("tbody tr").forEach(row => {
+        if (row.id === "totalRow") return;
 
+        const task = row.cells[0].dataset.task;
+        scores[task] = {};
 
-function enableEditMode(matchId, data) {
-  editingMatchId = matchId;
-  const div = document.getElementById("matchDetailContent");
-  div.innerHTML = ""; // Clear content first to avoid duplicates
+        selectedPlayers.forEach((p, i) => {
+          const input = row.cells[i + 1].querySelector("input");
+          const v = parseInt(input.value) || 0;
+          scores[task][p] = v;
+        });
+      });
 
-  const playersArray = Object.values(data.players);
+      const res = await fetch(`/matches/${currentMatch.match_id}/scores`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ scores })
+      });
 
-  if (!playersArray.length) {
-    alert(t("no_players_found"));
-    return;
-  }
+      if (!res.ok) {
+        alert("Save failed");
+        return;
+      }
 
-  const taskNames = [...new Set(playersArray.flatMap(p => Object.keys(p.details)))];
+      saveScoresBtn.disabled = true;
+      table.querySelectorAll("input").forEach(inp => inp.disabled = true);
 
-  const table = document.createElement("table");
+      await fetchMyMatches();
+      alert("Scores saved!");
+    };
 
-  // THEAD
-  const thead = document.createElement("thead");
-  const trHead = document.createElement("tr");
-  const thTask = document.createElement("th");
-  thTask.textContent = t("task");
-  trHead.appendChild(thTask);
+    /* ================= MATCH HISTORY ================= */
+    function renderMatchHistory(matches) {
+      const container = document.getElementById("matchHistory");
+      container.innerHTML = "";
 
-  playersArray.forEach(p => {
-    const th = document.createElement("th");
-    th.textContent = p.username;
-    trHead.appendChild(th);
-  });
+      if (!matches.length) {
+        container.textContent = t("no_matches_yet");
+        return;
+      }
 
-  thead.appendChild(trHead);
-  table.appendChild(thead);
+      matches.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
-  // TBODY
-  const tbody = document.createElement("tbody");
-  taskNames.forEach(task => {
-    const tr = document.createElement("tr");
+      const table = document.createElement("table");
 
-    const tdTask = document.createElement("td");
-tdTask.textContent = t(task);
-tdTask.dataset.task = task;   // store original task key
-    tr.appendChild(tdTask);
+      const thead = document.createElement("thead");
+      const headerRow = document.createElement("tr");
 
-    playersArray.forEach(p => {
-      const td = document.createElement("td");
-      const input = document.createElement("input");
-      input.type = "number";
-      input.value = p.details[task] || 0;
-      input.className = "score-input";
-      td.appendChild(input);
-      tr.appendChild(td);
-    });
+      const thDate = document.createElement("th");
+      thDate.setAttribute("data-i18n", "date");
 
-    tbody.appendChild(tr);
-  });
+      const thID = document.createElement("th");
+      thID.setAttribute("data-i18n", "match_id");
 
-  table.appendChild(tbody);
-  div.appendChild(table);
+      const thPlayers = document.createElement("th");
+      thPlayers.setAttribute("data-i18n", "players");
 
-  // SAVE BUTTON
-  const saveBtn = document.createElement("button");
-  saveBtn.id = "saveEditedScoresBtn";
-  saveBtn.textContent = `💾 ${t("save_changes")}`;
-  saveBtn.onclick = saveEditedScores;
-  div.appendChild(saveBtn);
-}
+      const thStartPlayer = document.createElement("th");
+      thStartPlayer.setAttribute("data-i18n", "start_player");
 
-function renderStartPlayerSelect() {
-  const select = document.getElementById("startPlayer")
+      const thScores = document.createElement("th");
+      thScores.setAttribute("data-i18n", "scores");
 
-  select.innerHTML = selectedPlayers
-    .map(p => `<option value="${p}">${p}</option>`)
-    .join("")
-}
+      const thDetails = document.createElement("th");
+      thDetails.setAttribute("data-i18n", "details");
 
+      headerRow.append(thDate, thID, thPlayers, thStartPlayer, thScores, thDetails);
+      thead.appendChild(headerRow);
+      table.appendChild(thead);
 
-async function saveEditedScores(){
+      const tbody = document.createElement("tbody");
 
-  const matchId = editingMatchId;
+      matches.forEach(m => {
+        const tr = document.createElement("tr");
 
-  if(!matchId){
-    alert("Match ID missing");
-    return;
-  }
+        const tdDate = document.createElement("td");
+        tdDate.textContent = m.date;
 
-  const table = document.querySelector("#matchDetailContent table");
+        const tdID = document.createElement("td");
+        tdID.textContent = m.match_id || "x";
 
-  if(!table){
-    alert("Table missing");
-    return;
-  }
+        const tdCount = document.createElement("td");
+        tdCount.textContent = m.player_count || "x";
 
-  const rows = table.querySelectorAll("tbody tr");
+        const tdStartPlayer = document.createElement("td");
+        tdStartPlayer.textContent = m.start_player || "x";
 
-  const scores = {};
+        const tdScores = document.createElement("td");
 
-  rows.forEach(row=>{
+        const scoresArray = Object.values(m.scores || {});
+        const max = Math.max(...scoresArray.map(s => s.score || 0));
 
-const task = row.cells[0].dataset.task;
-    scores[task] = {};
+        scoresArray.forEach((s, i) => {
+          const element = document.createElement(s.score === max ? "b" : "span");
+          element.textContent = `${s.username}:${s.score}`;
+          tdScores.appendChild(element);
+
+          if (i < scoresArray.length - 1) {
+            tdScores.appendChild(document.createTextNode(" | "));
+          }
+        });
 
-    const inputs = row.querySelectorAll("input");
+        const tdBtn = document.createElement("td");
+        const btn = document.createElement("button");
+        btn.textContent = "🔍";
+        btn.title = t("show_details");
+        btn.addEventListener("click", () => showMatchDetails(m.match_id));
 
-    inputs.forEach((input,i)=>{
-      const username = table.querySelector("thead tr")
-                            .cells[i+1]
-                            .textContent;
+        tdBtn.appendChild(btn);
+
+        tr.append(tdDate, tdID, tdCount, tdStartPlayer, tdScores, tdBtn);
+        tbody.appendChild(tr);
+      });
+
+      table.appendChild(tbody);
+      container.appendChild(table);
+
+      loadLanguage(currentLang);
+    }
 
-      scores[task][username] = parseInt(input.value) || 0;
-    });
-  });
+    /* ================= FILTERS ================= */
+    filterPlayerCount.onchange = applyFilters;
+    filterPlayerName.oninput = applyFilters;
 
-  const res = await fetch(`/matches/${matchId}/scores`, {
-    method:"PATCH",
-    headers:{
-      Authorization:`Bearer ${token}`,
-      "Content-Type":"application/json"
-    },
-    body: JSON.stringify({ scores })
-  });
+    function applyFilters() {
+      const countFilter = filterPlayerCount.value;
+      const nameFilter = filterPlayerName.value.toLowerCase().trim().slice(0, 30);
 
-  if(!res.ok){
-    alert("Update failed");
-    return;
-  }
+      const filteredMatches = allMatches.filter(match => {
+        if (countFilter && match.player_count != countFilter) return false;
+
+        if (nameFilter) {
+          const playerMatch = match.players?.some(player =>
+            player?.username?.toLowerCase()?.includes(nameFilter)
+          );
 
-  alert("Scores updated!");
-
-  // Refresh match list (but DO NOT rerender modal detail twice)
-  await fetchMyMatches();
-
-  // Keep modal open but reload detail view cleanly
-  const data = await fetch(`/matches/${matchId}`,{
-    headers:{Authorization:`Bearer ${token}`}
-  }).then(r=>r.json());
-
-
-  showMatchDetails(matchId);
-}
-</script>
+          if (!playerMatch) return false;
+        }
+
+        return true;
+      });
+
+      renderMatchHistory(filteredMatches);
+    }
+
+    /* ================= MATCH DETAIL MODAL ================= */
+    async function showMatchDetails(id) {
+      editingMatchId = id;
+
+      const data = await fetch(`/matches/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      }).then(r => r.json());
+
+      const div = document.getElementById("matchDetailContent");
+      div.innerHTML = "";
+
+      const title = document.createElement("h2");
+      title.textContent = t("match_settings");
+      div.appendChild(title);
+
+      const editBtn = document.createElement("button");
+      editBtn.textContent = `✏️ ${t("edit_scores")}`;
+      editBtn.addEventListener("click", () => enableEditMode(id, data));
+      div.appendChild(editBtn);
+
+      if (data.map) div.appendChild(renderMap(data.map));
+
+      const metaWrapper = document.createElement("div");
+      metaWrapper.className = "match-meta-grid";
+
+      metaWrapper.innerHTML = `
+        <div class="match-meta-card">
+          <strong>${t("island")}</strong>
+          <div>${t(data.island)}</div>
+        </div>
+        <div class="match-meta-card">
+          <strong>${t("caves")}</strong>
+          <div>${t(data.caves)}</div>
+        </div>
+        <div class="match-meta-card">
+          <strong>${t("capitols")}</strong>
+          <div>${data.capitols}</div>
+        </div>
+      `;
+
+      div.appendChild(metaWrapper);
+
+      const playersArray = Object.values(data.players || {});
+      if (!playersArray.length) {
+        const noData = document.createElement("p");
+        noData.textContent = t("no_scores_available");
+        div.appendChild(noData);
+        matchDetailModal.style.display = "block";
+        return;
+      }
+
+      const table = document.createElement("table");
+
+      const thead = document.createElement("thead");
+      const headerRow = document.createElement("tr");
+
+      const thTask = document.createElement("th");
+      thTask.textContent = t("task");
+      headerRow.appendChild(thTask);
+
+      playersArray.forEach(p => {
+        const th = document.createElement("th");
+        th.textContent = p.username;
+        headerRow.appendChild(th);
+      });
+
+      thead.appendChild(headerRow);
+      table.appendChild(thead);
+
+      const tbody = document.createElement("tbody");
+      const taskNames = [...new Set(playersArray.flatMap(p => Object.keys(p.details || {})))];
+
+      taskNames.forEach(task => {
+        const tr = document.createElement("tr");
+
+        const tdTask = document.createElement("td");
+        tdTask.textContent = t(task);
+        tdTask.dataset.task = task;
+        tr.appendChild(tdTask);
+
+        playersArray.forEach(p => {
+          const td = document.createElement("td");
+          td.textContent = p.details?.[task] || 0;
+          tr.appendChild(td);
+        });
+
+        tbody.appendChild(tr);
+      });
+
+      const totalRow = document.createElement("tr");
+      const tdTotalLabel = document.createElement("td");
+      tdTotalLabel.innerHTML = `<strong>${t("total")}</strong>`;
+      totalRow.appendChild(tdTotalLabel);
+
+      playersArray.forEach(p => {
+        const td = document.createElement("td");
+        td.innerHTML = `<strong>${p.total || 0}</strong>`;
+        totalRow.appendChild(td);
+      });
+
+      tbody.appendChild(totalRow);
+      table.appendChild(tbody);
+
+      div.appendChild(table);
+      matchDetailModal.style.display = "block";
+    }
+
+    function closeMatchDetails() {
+      matchDetailModal.style.display = "none";
+    }
+
+    function enableEditMode(matchId, data) {
+      editingMatchId = matchId;
+      const div = document.getElementById("matchDetailContent");
+      div.innerHTML = "";
+
+      const playersArray = Object.values(data.players || {});
+      if (!playersArray.length) {
+        alert(t("no_players_found"));
+        return;
+      }
+
+      const taskNames = [...new Set(playersArray.flatMap(p => Object.keys(p.details || {})))];
+
+      const table = document.createElement("table");
+
+      const thead = document.createElement("thead");
+      const trHead = document.createElement("tr");
+      const thTask = document.createElement("th");
+      thTask.textContent = t("task");
+      trHead.appendChild(thTask);
+
+      playersArray.forEach(p => {
+        const th = document.createElement("th");
+        th.textContent = p.username;
+        trHead.appendChild(th);
+      });
+
+      thead.appendChild(trHead);
+      table.appendChild(thead);
+
+      const tbody = document.createElement("tbody");
+
+      taskNames.forEach(task => {
+        const tr = document.createElement("tr");
+
+        const tdTask = document.createElement("td");
+        tdTask.textContent = t(task);
+        tdTask.dataset.task = task;
+        tr.appendChild(tdTask);
+
+        playersArray.forEach(p => {
+          const td = document.createElement("td");
+          const input = document.createElement("input");
+          input.type = "number";
+          input.value = p.details?.[task] || 0;
+          input.className = "score-input";
+          td.appendChild(input);
+          tr.appendChild(td);
+        });
+
+        tbody.appendChild(tr);
+      });
+
+      table.appendChild(tbody);
+      div.appendChild(table);
+
+      const saveBtn = document.createElement("button");
+      saveBtn.id = "saveEditedScoresBtn";
+      saveBtn.textContent = `💾 ${t("save_changes")}`;
+      saveBtn.onclick = saveEditedScores;
+      div.appendChild(saveBtn);
+    }
+
+    function renderStartPlayerSelect() {
+      const select = document.getElementById("startPlayer");
+      select.innerHTML = selectedPlayers
+        .map(p => `<option value="${p}">${p}</option>`)
+        .join("");
+    }
+
+    async function saveEditedScores() {
+      const matchId = editingMatchId;
+      if (!matchId) {
+        alert("Match ID missing");
+        return;
+      }
+
+      const table = document.querySelector("#matchDetailContent table");
+      if (!table) {
+        alert("Table missing");
+        return;
+      }
+
+      const rows = table.querySelectorAll("tbody tr");
+      const scores = {};
+
+      rows.forEach(row => {
+        const task = row.cells[0].dataset.task;
+        scores[task] = {};
+
+        const inputs = row.querySelectorAll("input");
+        inputs.forEach((input, i) => {
+          const username = table.querySelector("thead tr").cells[i + 1].textContent;
+          scores[task][username] = parseInt(input.value) || 0;
+        });
+      });
+
+      const res = await fetch(`/matches/${matchId}/scores`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ scores })
+      });
+
+      if (!res.ok) {
+        alert("Update failed");
+        return;
+      }
+
+      alert("Scores updated!");
+
+      await fetchMyMatches();
+      showMatchDetails(matchId);
+    }
+  </script>
 
 </body>
 </html>

@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String, DateTime, Boolean, ForeignKey, J
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from .database import Base
+from sqlalchemy.ext.mutable import MutableList
 
 
 class User(Base):
@@ -69,7 +70,7 @@ class Match(Base):
     capitols = Column(String, nullable=False)
     island = Column(String, nullable=False)
 
-    tasks = Column(JSON, nullable=False)
+    tasks = Column(MutableList.as_mutable(JSON), nullable=False)
     map = Column(JSON, nullable=False)
 
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False)

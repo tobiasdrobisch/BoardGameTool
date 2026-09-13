@@ -391,8 +391,8 @@ def get_match_detail(
     return match_data
 
 
-@app.patch("/matches/{match_id}/scores", tags=["Matches"])
-def update_match_scores(
+@app.patch("/matches/{match_id}/scores", tags=["Edit Matches"])
+def update_scores(
     match_id: int,
     payload: schemas.MatchScoresUpdate,
     db: Session = Depends(get_db),
@@ -471,6 +471,125 @@ def update_match_scores(
     db.commit()
 
     return {"status": "updated"}
+
+@app.patch("/matches/{match_id}/start_player", tags=["Edit Matches"])
+def update_start_player(
+    match_id: int,
+    payload: schemas.MatchStartPlayerUpdate,
+    db: Session = Depends(get_db),
+):
+    new_start_player_id = payload.start_player_id
+
+    # Fetch the match
+    match = db.query(models.Match).filter(
+        models.Match.id == match_id
+    ).first()
+
+    if not match:
+        raise HTTPException(status_code=404, detail="Match not found")
+
+    # Fetch all players of this match
+    match_players = db.query(models.MatchPlayer).filter(
+        models.MatchPlayer.match_id == match_id
+    ).all()
+
+    ids_in_match = [mp.user_id for mp in match_players]
+
+    if new_start_player_id not in ids_in_match:
+        raise HTTPException(status_code=400, detail="Player not in match")
+
+    # update start_player_id of this match
+    match.start_player_id = new_start_player_id
+
+    db.commit()
+    db.refresh(match)
+
+    return {"status": f"start player updated to {new_start_player_id}"}
+
+@app.patch("/matches/{match_id}/task", tags=["Edit Matches"])
+def update_task(
+    match_id: int,
+    payload: schemas.MatchTaskUpdate,
+    db: Session = Depends(get_db),
+):
+    match = db.query(models.Match).filter(
+        models.Match.id == match_id
+    ).first()
+
+    if not match:
+        raise HTTPException(status_code=404, detail="Match not found")
+
+    updated = False
+
+    # 1. edit task in match
+    for i, category in enumerate(match.tasks):
+        if category == payload.old_task:
+            match.tasks[i] = payload.new_task
+
+    # 2. edit task in MatchResultValue
+    # Subquery: find all relevant match_result_ids
+    subquery = db.query(models.MatchResult.id).join(
+        models.MatchPlayer
+    ).filter(
+        models.MatchPlayer.match_id == match_id
+    ).subquery()
+
+    # Update without Join
+    db.query(models.MatchResultValue).filter(
+        models.MatchResultValue.match_result_id.in_(subquery),
+        models.MatchResultValue.category == payload.old_task
+    ).update(
+        {models.MatchResultValue.category: payload.new_task},
+        synchronize_session=False
+    )
+
+    # 3. Commit
+    db.commit()
+    db.refresh(match)
+
+    return {
+        "status": f"{payload.old_task} updated to {payload.new_task}",
+        "tasks": match.tasks
+    }
+
+"""
+    # Fetch all players of this match
+ #   match_tasks = db.query(models.MatchPlayer).filter(
+#        models.MatchPlayer.match_id == match_id
+#    ).all()
+
+    ids_in_match = [mp.user_id for mp in match_players]
+
+    if new_start_player_id not in ids_in_match:
+        raise HTTPException(status_code=400, detail="Player not in match")
+
+    # update start_player_id of this match
+    match.start_player_id = new_start_player_id
+
+    db.commit()
+    db.refresh(match)
+"""
+"""
+    # --- Recalculate total_score for each MatchResult ---
+    match_results = db.query(models.MatchResult).filter(
+        models.MatchResult.match_player_id.in_(
+            db.query(models.MatchPlayer.id).filter(
+                models.MatchPlayer.match_id == match_id
+            )
+        )
+    ).all()
+
+    for result in match_results:
+        # Sum all values for this MatchResult
+        total = db.query(func.sum(models.MatchResultValue.value)).filter(
+            models.MatchResultValue.match_result_id == result.id
+        ).scalar() or 0
+        result.total_score = total
+
+    # Commit total_score updates
+    db.commit()
+"""
+
 
 
 @app.delete("/matches/{match_id}", tags=["Matches"])

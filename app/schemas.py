@@ -81,6 +81,12 @@ class GameRead(BaseModel):
     """
     pass
 
+class MatchStartPlayerUpdate(BaseModel):
+    start_player_id: int
+
+class MatchTaskUpdate(BaseModel):
+    old_task: str
+    new_task: str
 
 class MatchScoresUpdate(BaseModel):
     scores: Dict[str, Dict[str, int]] # { "Task 1": { "Player1": 5, "Player2": 3 }, ... }

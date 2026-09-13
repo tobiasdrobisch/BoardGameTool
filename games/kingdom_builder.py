@@ -38,7 +38,7 @@ def select_tasks(map, island, number_of_capitols):
     crossroad_tasks = random.sample(CROSSROAD_TASKS, number_of_crossroad_tasks)
     tasks = tasks + crossroad_tasks
 
-    if "Noblewomen" not in tasks and number_of_palaces > 0:
+    if "task_noblewomen" not in tasks and number_of_palaces > 0:
         tasks += ["task_palaces"]
     if number_of_castles - number_of_capitols > 0:
         tasks += ["task_castles"]

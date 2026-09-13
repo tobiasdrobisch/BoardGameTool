@@ -34,6 +34,8 @@
   "crossroad_task_road": "Straße",
   "crossroad_task_compass_points": "Himmelsrichtungen",
 
+  "nomad_task_treasure": "Schatz",
+
   "map_oracle": "Orakel",
   "map_harbor": "Hafen",
   "map_oasis": "Oase",
@@ -83,6 +85,7 @@
   "match_settings": "Spieleinstellungen",
   "save_scores": "Punkte speichern",
   "played_matches": "Gespielte Spiele",
+  "statistics": "Statistiken",
   "no_match_created_yet": "Noch kein Spiel erstellt.",
   "enter_player_name": "Gib einen Spielernamen ein.",
   "player_name": "Spielername",
@@ -104,5 +107,6 @@
   "wood": "Holz",
   "canyon": "Canyon",
   "upright": "↑ richtig",
-  "reversed": "↺ kopfüber"
+  "reversed": "↺ kopfüber",
+  "match_id": "ID"
 }
