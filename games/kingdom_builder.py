@@ -1,8 +1,6 @@
 import random
 import datetime
 
-
-
 setup_guide = ""
 
 
@@ -19,14 +17,33 @@ def select_map_tiles():
     return map
 
 
-def select_tasks(map):
+
+def select_tasks(map, island, number_of_capitols):
+
+    tasks = random.sample(TASKS, 3)
+
     number_of_crossroad_tasks = 0
+    number_of_castles = 0
+    number_of_palaces = 0
+
+    if island:
+        number_of_castles += 1
+
     for map_tile in map:
         if map_tile[1] == "C":
             number_of_crossroad_tasks += 1
+        number_of_palaces += map_tile[4]
+        number_of_castles += map_tile[3]
+
     crossroad_tasks = random.sample(CROSSROAD_TASKS, number_of_crossroad_tasks)
-    tasks = random.sample(TASKS, 3)
     tasks = tasks + crossroad_tasks
+
+    if "task_noblewomen" not in tasks and number_of_palaces > 0:
+        tasks += ["task_palaces"]
+    if number_of_castles - number_of_capitols > 0:
+        tasks += ["task_castles"]
+    if number_of_capitols > 0 and number_of_castles > 0:
+        tasks += ["task_capitols"]
     return tasks
 
 def nomads_expansion():
@@ -42,94 +59,164 @@ def harvest_expansion():
     pass
 
 def island_queenie():
-    return random.choice(["Wood", "Canyon"])
+    return random.choice(["wood", "canyon"])
 
-#TODO: get random number for map tile position of each cave
-def caves_queenie():
-        return 'caves'
+#TODO: get random number for map tile position of each cave, then remove cave in frontend if caves 0
+def caves_queenie(map):
+    caves = []
+    for i in map:
+        possible_mountains = i[6]
+        if possible_mountains:
+            cave_position = random.randint(1, possible_mountains)
+        else:
+            cave_position = 0
+        caves.append(f"{cave_position}/{possible_mountains}")
+    return caves
 
-#TODO: get random number(s) for capitol(s)
+#TODO: get random number(s) for position of capitol(s)
 def capitols_queenie():
     both_capitols = random.choice([True, False])
     if both_capitols:
-        return 'both capitols'
+        return 2
     else:
-        return 'one capitol'
+        return 1
 
 
 #fyi: Lords excluded
-TASKS = ["Fishermen", "Miners", "Merchants", "Workers", "Discoverer", "Knights", "Hermits", "Citizens", "Farmers", "Families", "Shepherds", "Ambassadors", "Geologists", "Messengers", "Noblewomen", "Vassals", "Captains", "Scouts", "Rangers", "Travellers", "Chainers", "Homesteaders", "Mayors", "Rovers"]
-CROSSROAD_TASKS = ["Home Country", "Place of Refuge", "Fortress", "Advance", "Road", "Compass Points"]
-
-
-# [ID, "expansion", "title", # (placeholder), castles, palaces, Silos, Mountain Caves]
-MAP_TILES = [
-    [1, "KB", "Oracle"], #, 2, 0, 0, 2
-    [2, "KB", "Harbor"], #, 2, 0, 0, 1
-    [3, "KB", "Oasis"], # , 1, 0, 0, 0
-    [4, "KB", "Paddock"], #, 1, 0, 0, 13
-    [5, "KB", "Barn"], #, 1, 0, 0, 9
-    [6, "KB", "Tower"], #, 1, 0, 0, 9
-    [7, "KB", "Farm"],#, 1, 0, 0, 2
-    [8, "KB", "Tavern"], #, 1, 0, 0, 9
-    [9, "N", "Quarry"],#, 0, 0, 0, 3
-    [10, "N", "Village"], #, 0, 0, 0, 4
-    [11, "N", "Garden"], #, 0, 0, 0, 5
-    [12, "N", "Caravan"], #, 0, 0, 0, 1
-    [13, "C", "Lighthouse"], #, 1, 0, 0, 3
-    [14, "C", "Fort"], # , 1, 0, 0, 6
-    [15, "C", "Wagon"], #, 1, 0, 0, 6
-    [16, "C", "Crossroads"], #, 1, 0, 0, 1
-    [17, "H", "Watchtower"], #, 0, 0, 1, 1
-    [18, "H", "Scout Cabin"], #, 1, 0, 1, 2
-    [19, "H", "Water Mill"], #, 0, 0, 1, 6
-    [20, "H", "Palisade"], #, 0, 0, 1, 3
-    [21, "M", "Refuge"], #, 0, 1, 0, 6
-    [22, "M", "Temple"], #, 0, 1, 0, 1
-    [23, "M", "Fountain"],#, 0, 1, 0, 2
-    [24, "M", "Canoe"], #, 0, 1, 0, 7
+TASKS = [
+    "task_fishermen",
+    "task_miners",
+    "task_merchants",
+    "task_workers",
+    "task_discoverer",
+    "task_knights",
+    "task_hermits",
+    "task_citizens",
+    "task_farmers",
+    "task_families",
+    "task_shepherds",
+    "task_ambassadors",
+    "task_geologists",
+    "task_messengers",
+    "task_noblewomen",
+    "task_vassals",
+    "task_captains",
+    "task_scouts",
+    "task_rangers",
+    "task_travellers",
+    "task_chainers",
+    "task_homesteaders",
+    "task_mayors",
+    "task_rovers"
 ]
+CROSSROAD_TASKS = [
+    "crossroad_task_home_country",
+    "crossroad_task_place_of_refuge",
+    "crossroad_task_fortress",
+    "crossroad_task_advance",
+    "crossroad_task_road",
+    "crossroad_task_compass_points"
+]
+
+
+# [ID, "expansion", "title", castles, palaces, silos, mountain caves, nomad tents]
+# "upside" / "reversed" is getting added later to chosen map_tiles
+MAP_TILES = [
+    [1, "KB", "map_oracle", 2, 0, 0, 2, 0],
+    [2, "KB", "map_harbor", 2, 0, 0, 1, 0],
+    [3, "KB", "map_oasis", 1, 0, 0, 0, 0],
+    [4, "KB", "map_paddock", 1, 0, 0, 13, 0],
+    [5, "KB", "map_barn", 1, 0, 0, 9, 0],
+    [6, "KB", "map_tower", 1, 0, 0, 9, 0],
+    [7, "KB", "map_farm", 1, 0, 0, 2, 0],
+    [8, "KB", "map_tavern", 1, 0, 0, 9, 0],
+    [9, "N", "map_quarry", 0, 0, 0, 3, 3],
+    [10, "N", "map_village", 0, 0, 0, 4, 1],
+    [11, "N", "map_garden", 0, 0, 0, 5, 1],
+    [12, "N", "map_caravan", 0, 0, 0, 1, 1],
+    [13, "C", "map_lighthouse", 1, 0, 0, 3, 0],
+    [14, "C", "map_fort", 1, 0, 0, 6, 0],
+    [15, "C", "map_wagon", 1, 0, 0, 6, 0],
+    [16, "C", "map_crossroads", 1, 0, 0, 1, 0],
+    [17, "H", "map_watchtower", 0, 0, 1, 1, 0],
+    [18, "H", "map_scout_cabin", 1, 0, 1, 2, 0],
+    [19, "H", "map_water_mill", 0, 0, 1, 6, 0],
+    [20, "H", "map_palisade", 0, 0, 1, 3, 0],
+    [21, "M", "map_refuge", 0, 1, 0, 6, 0],
+    [22, "M", "map_temple", 0, 1, 0, 1, 0],
+    [23, "M", "map_fountain", 0, 1, 0, 2, 0],
+    [24, "M", "map_canoe", 0, 1, 0, 7, 0]
+]
+# old version
+"""MAP_TILES = [
+    [1, "KB", "map_oracle", 2, 0, 0, 2],
+    [2, "KB", "map_harbor", 2, 0, 0, 1],
+    [3, "KB", "map_oasis", 1, 0, 0, 0],
+    [4, "KB", "map_paddock", 1, 0, 0, 13],
+    [5, "KB", "map_barn", 1, 0, 0, 9],
+    [6, "KB", "map_tower", 1, 0, 0, 9],
+    [7, "KB", "map_farm", 1, 0, 0, 2],
+    [8, "KB", "map_tavern", 1, 0, 0, 9],
+    [9, "N", "map_quarry", 0, 0, 0, 3],
+    [10, "N", "map_village", 0, 0, 0, 4],
+    [11, "N", "map_garden", 0, 0, 0, 5],
+    [12, "N", "map_caravan", 0, 0, 0, 1],
+    [13, "C", "map_lighthouse", 1, 0, 0, 3],
+    [14, "C", "map_fort", 1, 0, 0, 6],
+    [15, "C", "map_wagon", 1, 0, 0, 6],
+    [16, "C", "map_crossroads", 1, 0, 0, 1],
+    [17, "H", "map_watchtower", 0, 0, 1, 1],
+    [18, "H", "map_scout_cabin", 1, 0, 1, 2],
+    [19, "H", "map_water_mill", 0, 0, 1, 6],
+    [20, "H", "map_palisade", 0, 0, 1, 3],
+    [21, "M", "map_refuge", 0, 1, 0, 6],
+    [22, "M", "map_temple", 0, 1, 0, 1],
+    [23, "M", "map_fountain", 0, 1, 0, 2],
+    [24, "M", "map_canoe", 0, 1, 0, 7]
+]"""
 
 def create_match():
 
     output = datetime.datetime.today()
     output = output.strftime("%x")+ "\n"
 
+    # Queenies
+    island = 0
+    caves = 0
+    capitols = 0
 
     # map
     map = select_map_tiles()
 
-    # tasks
-    tasks = select_tasks(map)
-
-    # Queenies
-    island = "No"
-    caves = "No"
-    capitols = "No"
-
     #   Island (Queenie 3)
     if random.choice([True, False]):
         island = island_queenie()
-        output += island + "\n"
+        #output += island + "\n"
     #   Caves (Queenie 2)
     if random.choice([True, False]):
-        caves = caves_queenie()
-        output += caves + "\n"
+        caves = caves_queenie(map)
+        #output += str(caves) + "\n"
     #   Capitol (Queenie 1)
     if random.choice([True, False]):
         capitols = capitols_queenie()
-        output += capitols + "\n"
+        #output += str(capitols) + "\n"
+
+    # tasks
+    tasks = select_tasks(map, island, capitols)
+
+
 
     output += str(map) + "\n"
     output += str(tasks) + "\n"
 
     print(output)
 
+
     return {
         "board_game_id": 1,
         "map": map,
         "tasks": tasks,
-        "island": island,
-        "caves": caves,
-        "capitols": capitols
+        "island": str(island),
+        "caves": str(caves),
+        "capitols": str(capitols)
     }

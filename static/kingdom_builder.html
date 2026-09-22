@@ -1,584 +1,979 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Kingdom Builder Tool</title>
+  <meta charset="UTF-8">
+  <title>Kingdom Builder Tool</title>
 
-<style>
-/* ===== GENERAL ===== */
-body {
-  font-family: Arial, sans-serif;
-  padding: 20px;
-  background:#f5f5f5;
-}
+  <style>
+    #language-switcher {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+    }
 
-h1,h3 { margin-top:0 }
+    /* ===== GENERAL ===== */
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: #f5f5f5;
+    }
 
-/* ===== LAYOUT ===== */
-.main-layout {
-  display:flex;
-  gap:20px;
-}
+    .hidden {
+      display: none;
+    }
 
-.left-panel {
-  flex:1;
-  max-width:420px;
-  background:white;
-  padding:15px;
-  border-radius:10px;
-  box-shadow:0 2px 5px rgba(0,0,0,0.1);
-}
+    h1, h3 { margin-top: 0; }
 
-.right-panel {
-  flex:2;
-  background:white;
-  padding:15px;
-  border-radius:10px;
-  box-shadow:0 2px 5px rgba(0,0,0,0.1);
-}
+    /* ===== LAYOUT ===== */
+    .main-layout {
+      display: flex;
+      gap: 20px;
+    }
 
-/* ===== PLAYER SELECT ===== */
-#playerInputContainer { position:relative; margin-top:10px; }
-#playerInput { width:100%; padding:6px; }
+    .left-panel {
+      flex: 1;
+      max-width: 420px;
+      background: white;
+      padding: 15px;
+      border-radius: 10px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
 
-#suggestions {
-  border:1px solid #ccc;
-  max-height:150px;
-  overflow-y:auto;
-  position:absolute;
-  background:white;
-  width:100%;
-  z-index:10;
-}
+    .right-panel {
+      flex: 2;
+      background: white;
+      padding: 15px;
+      border-radius: 10px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
 
-.suggestion-item {
-  padding:5px;
-  cursor:pointer;
-}
-.suggestion-item:hover { background:#eee; }
+    /* ===== PLAYER SELECT ===== */
+    #playerInputContainer { position: relative; margin-top: 10px; }
+    #playerInput { width: 100%; padding: 6px; }
 
-.player-tag {
-  display:inline-block;
-  padding:5px 10px;
-  background:#007bff;
-  color:white;
-  border-radius:15px;
-  margin:3px;
-  cursor:pointer;
-}
-.player-tag:hover { background:#0056b3; }
+    #suggestions {
+      border: 1px solid #ccc;
+      max-height: 150px;
+      overflow-y: auto;
+      position: absolute;
+      background: white;
+      width: 100%;
+      z-index: 10;
+    }
 
-/* ===== BUTTONS ===== */
-button {
-  margin-top:10px;
-  padding:8px 12px;
-  border:none;
-  border-radius:5px;
-  background:#007bff;
-  color:white;
-  cursor:pointer;
-  opacity:.5;
-}
+    .suggestion-item {
+      padding: 5px;
+      cursor: pointer;
+    }
+    .suggestion-item:hover { background: #eee; }
 
-button.enabled {
-  opacity:1;
-}
+    .player-tag {
+      display: inline-block;
+      padding: 5px 10px;
+      background: #007bff;
+      color: white;
+      border-radius: 15px;
+      margin: 3px;
+      cursor: pointer;
+    }
+    .player-tag:hover { background: #0056b3; }
 
-button:hover { background:#0056b3; }
+    /* ===== BUTTONS ===== */
+    button {
+      margin-top: 10px;
+      padding: 8px 12px;
+      border: none;
+      border-radius: 5px;
+      background: #007bff;
+      color: white;
+      cursor: pointer;
+    }
 
-/* ===== TABLE ===== */
-table {
-  border-collapse:collapse;
-  width:100%;
-  margin-top:10px;
-  background:white;
-}
+    button:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+    }
 
-table, th, td {
-  border:1px solid #ccc;
-}
+    button:hover { background: #0056b3; }
 
-th, td {
-  padding:6px;
-  text-align:center;
-}
+    /* ===== TABLE ===== */
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 10px;
+      background: white;
+    }
 
-/* number arrows remove */
-input[type=number]::-webkit-inner-spin-button,
-input[type=number]::-webkit-outer-spin-button {
-  -webkit-appearance:none;
-}
+    table, th, td {
+      border: 1px solid #ccc;
+    }
 
-input.score-input {
-  width:60px;
-  text-align:center;
-}
+    th, td {
+      padding: 6px;
+      text-align: center;
+    }
 
-/* ===== MAP GRID ===== */
-.map-grid {
-  display:grid;
-  grid-template-columns:repeat(2,1fr);
-  gap:10px;
-  margin-top:10px;
-}
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+    }
 
-.map-tile {
-  border:1px solid #444;
-  padding:10px;
-  background:#fafafa;
-  border-radius:6px;
-}
+    input.score-input {
+      width: 60px;
+      text-align: center;
+    }
 
-.map-title {
-  font-weight:bold;
-}
+    /* ===== MAP GRID ===== */
+    .map-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-top: 10px;
+    }
 
-.map-meta {
-  font-size:.9em;
-  color:#555;
-}
+    .map-tile {
+      border: 1px solid #444;
+      padding: 10px;
+      background: #fafafa;
+      border-radius: 6px;
+    }
 
-/* ===== MODAL ===== */
-#matchDetailModal {
-  display:none;
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.6);
-  padding:40px;
-  z-index:9999;
-}
+    .map-title {
+      font-weight: bold;
+    }
 
-#matchDetailBox {
-  background:white;
-  padding:20px;
-  max-width:900px;
-  margin:auto;
-  border-radius:10px;
-}
-</style>
+    .map-meta {
+      font-size: .9em;
+      color: #555;
+    }
+
+    /* ===== MODAL ===== */
+    #matchDetailModal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.6);
+      padding: 40px;
+      z-index: 9999;
+    }
+
+    #matchDetailBox {
+      background: white;
+      padding: 20px;
+      max-width: 900px;
+      margin: auto;
+      border-radius: 10px;
+    }
+
+    .match-meta-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+      margin: 15px 0 20px 0;
+    }
+
+    .match-meta-card {
+      background: #fafafa;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+      text-align: center;
+    }
+
+    .player-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .player-left {
+      flex: 1;
+    }
+
+    .player-right {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+  </style>
 </head>
 
 <body>
 
-<!-- MATCH DETAIL MODAL -->
-<div id="matchDetailModal">
-  <div id="matchDetailBox">
-    <button onclick="closeMatchDetails()">Close</button>
-    <div id="matchDetailContent"></div>
+  <div id="language-switcher">
+    <button onclick="loadLanguage('de')">DE</button>
+    <button onclick="loadLanguage('en')">EN</button>
   </div>
-</div>
-
-<div class="main-layout">
-
-<!-- LEFT PANEL -->
-<div class="left-panel">
-<h1>Kingdom Builder</h1>
-
-<label>Player count:</label>
-<select id="playerCount">
-  <option value="">Select players</option>
-  <option value="2">2 Players</option>
-  <option value="3">3 Players</option>
-  <option value="4">4 Players</option>
-  <option value="5">5 Players</option>
-</select>
-
-<h3>Select players</h3>
-<div id="playerInputContainer">
-  <input id="playerInput" placeholder="Enter player name..." disabled>
-  <div id="suggestions"></div>
-</div>
-
-<div id="selectedPlayers"></div>
-<p>Selected players: <b id="playerCountDisplay">0</b></p>
-
-<button id="startGameBtn" disabled>Create Match</button>
-</div>
-
-<!-- RIGHT PANEL -->
-<div class="right-panel">
-<h3>Match Settings</h3>
-<div id="matchSettings">No match created yet.</div>
-
-<h3>Tasks & Scores</h3>
-<div id="tasksContainer"></div>
-<button id="saveScoresBtn" disabled>Save Scores</button>
-</div>
-
-</div>
-
-<hr>
-
-<!-- MATCH HISTORY -->
-<h3>Played Matches</h3>
-
-<div id="matchFilters">
-Player count:
-<select id="filterPlayerCount">
-  <option value="">All</option>
-  <option value="2">2</option>
-  <option value="3">3</option>
-  <option value="4">4</option>
-  <option value="5">5</option>
-</select>
-
-Player name:
-<input id="filterPlayerName" placeholder="Enter name...">
-</div>
-
-<div id="matchHistory"></div>
-
-<script>
-/* ================= AUTH ================= */
-const token = localStorage.getItem("token");
-if (!token) window.location.href="/static/index.html";
-
-/* ================= GLOBALS ================= */
-let users=[], selectedPlayers=[], currentTasks=[], currentMatch=null, MAX_PLAYERS=0, allMatches=[];
-
-const input = playerInput;
-const suggestions = document.getElementById("suggestions");
-const selectedContainer = selectedPlayersDiv = document.getElementById("selectedPlayers");
-const countDisplay = playerCountDisplay;
-const startBtn = startGameBtn;
-const matchSettingsDiv = matchSettings;
-const tasksContainer = tasksContainerDiv = document.getElementById("tasksContainer");
-const saveScoresBtn = saveScoresBtnEl = document.getElementById("saveScoresBtn");
-
-window.addEventListener("DOMContentLoaded", async () => {
-  await fetchUsers();
-  await fetchMyMatches();
-});
-
-
-/* ================= API LOAD ================= */
-async function fetchUsers(){
-  users = await fetch("/users/",{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.json());
-}
-
-async function fetchMyMatches(){
-  allMatches = await fetch("/matches/my",{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.json());
-  renderMatchHistory(allMatches);
-}
-
-/* ================= PLAYER SELECTION ================= */
-playerCount.addEventListener("change", e=>{
-  MAX_PLAYERS = +e.target.value || 0;
-  selectedPlayers=[];
-  renderSelectedPlayers();
-  input.disabled=!MAX_PLAYERS;
-  updateStartButton();
-});
-
-input.addEventListener("input", ()=>{
-  const q=input.value.toLowerCase();
-  suggestions.innerHTML="";
-  if(!q) return;
-
-  users.filter(u=>u.name.toLowerCase().includes(q) && !selectedPlayers.includes(u.name))
-       .forEach(u=>{
-        const d=document.createElement("div");
-        d.textContent=u.name;
-        d.className="suggestion-item";
-        d.onclick=()=>addPlayer(u.name);
-        suggestions.appendChild(d);
-       });
-});
-
-function addPlayer(name){
-  if(selectedPlayers.length>=MAX_PLAYERS) return;
-  selectedPlayers.push(name);
-  input.value="";
-  suggestions.innerHTML="";
-  renderSelectedPlayers();
-  updateStartButton();
-}
-
-function removePlayer(name){
-  selectedPlayers=selectedPlayers.filter(p=>p!==name);
-  renderSelectedPlayers();
-  updateStartButton();
-}
-
-function renderSelectedPlayers(){
-  selectedContainer.innerHTML="";
-  selectedPlayers.forEach(p=>{
-    const s=document.createElement("span");
-    s.textContent=p;
-    s.className="player-tag";
-    s.onclick=()=>removePlayer(p);
-    selectedContainer.appendChild(s);
-  });
-  countDisplay.textContent=selectedPlayers.length;
-}
-
-function updateStartButton(){
-  startBtn.disabled = !(selectedPlayers.length===MAX_PLAYERS && MAX_PLAYERS>0);
-  startBtn.classList.toggle("enabled", !startBtn.disabled);
-}
-
-/* ================= START MATCH ================= */
-startBtn.onclick = async ()=>{
-  if(startBtn.disabled) return;
-    startBtn.disabled = true;
-
-  try {
-    const res = await fetch("/start_kingdom_builder/",{
-      method:"POST",
-      headers:{
-        Authorization:`Bearer ${token}`,
-        "Content-Type":"application/json"
-      },
-    body:JSON.stringify(selectedPlayers)
-    });
-
-  currentMatch = await res.json();
-  if(!res.ok){ alert(JSON.stringify(currentMatch)); return; }
-
-  renderMatchSettings(currentMatch);
-  currentTasks = currentMatch.tasks;
-  renderTasks();
-
-  await fetchMyMatches();
-  } finally {
-    startBtn.disabled = false;
-  }
-};
-
-/* ================= MAP & SETTINGS ================= */
-function renderMatchSettings(m){
-  matchSettingsDiv.innerHTML="";
-  matchSettingsDiv.appendChild(renderMap(m.map));
-  matchSettingsDiv.innerHTML += `
-    <p><b>Island:</b> ${m.island}</p>
-    <p><b>Caves:</b> ${m.caves}</p>
-    <p><b>Capitols:</b> ${m.capitols}</p>`;
-}
-
-function renderMap(map){
-  const grid=document.createElement("div");
-  grid.className="map-grid";
-  map.forEach(([id,exp,name,ori])=>{
-    const d=document.createElement("div");
-    d.className="map-tile";
-    d.innerHTML=`<div class="map-title">${name}</div>
-                 <div class="map-meta">${exp} · ${ori==="upright"?"↑ upright":"↺ reversed"}</div>`;
-    grid.appendChild(d);
-  });
-  return grid;
-}
-
-/* ================= TASK TABLE ================= */
-function renderTasks(){
-  tasksContainer.innerHTML="";
-  if(!currentTasks?.length){
-    tasksContainer.textContent="No tasks available";
-    return;
-  }
-
-  const table = document.createElement("table");
-
-  // HEADER
-  const thead = document.createElement("thead");
-  const hr = document.createElement("tr");
-
-  const thTask = document.createElement("th");
-  thTask.textContent = "Task";
-  hr.appendChild(thTask);
-
-  selectedPlayers.forEach(p=>{
-    const th = document.createElement("th");
-    th.textContent = p;
-    hr.appendChild(th);
-  });
-
-  thead.appendChild(hr);
-  table.appendChild(thead);
-
-  // BODY
-  const tbody = document.createElement("tbody");
-
-  currentTasks.forEach(task=>{
-    const tr = document.createElement("tr");
-
-    // Task name cell
-    const tdTask = document.createElement("td");
-    tdTask.textContent = task.name; // SAFE
-    tr.appendChild(tdTask);
-
-    // Player score inputs
-    selectedPlayers.forEach(()=>{
-      const td = document.createElement("td");
-      const inp = document.createElement("input");
-      inp.type = "number";
-      inp.value = 0;
-      inp.className = "score-input";
-      inp.oninput = recalculateTotals;
-      td.appendChild(inp);
-      tr.appendChild(td);
-    });
-
-    tbody.appendChild(tr);
-  });
-
-  // TOTAL ROW
-  const totalRow = document.createElement("tr");
-  totalRow.id = "totalRow";
-
-  const tdTotal = document.createElement("td");
-  tdTotal.innerHTML = "<b>Total</b>";
-  totalRow.appendChild(tdTotal);
-
-  selectedPlayers.forEach(()=>{
-    const td = document.createElement("td");
-    td.textContent = "0";
-    totalRow.appendChild(td);
-  });
-
-  tbody.appendChild(totalRow);
-  table.appendChild(tbody);
-  tasksContainer.appendChild(table);
-
-  saveScoresBtn.disabled = false;
-  saveScoresBtn.classList.add("enabled");
-}
-
-
-/* ================= TOTALS ================= */
-function recalculateTotals(){
-  const table=tasksContainer.querySelector("table");
-  if(!table) return;
-  const totals=Object.fromEntries(selectedPlayers.map(p=>[p,0]));
-
-  table.querySelectorAll("tbody tr").forEach(row=>{
-    if(row.id==="totalRow") return;
-    selectedPlayers.forEach((p,i)=>{
-      const v=parseInt(row.cells[i+1].querySelector("input")?.value)||0;
-      totals[p]+=v;
-    });
-  });
-
-  const totalRow=document.getElementById("totalRow");
-  selectedPlayers.forEach((p,i)=> totalRow.cells[i+1].textContent=totals[p]);
-}
-
-/* ================= SAVE SCORES ================= */
-saveScoresBtn.onclick=()=>{
-  const table=tasksContainer.querySelector("table");
-  const scores={};
-
-  table.querySelectorAll("tbody tr").forEach(row=>{
-    if(row.id==="totalRow") return;
-    const task=row.cells[0].textContent;
-    scores[task]={};
-    selectedPlayers.forEach((p,i)=>{
-      const v=parseInt(row.cells[i+1].querySelector("input").value)||0;
-      scores[task][p]=v;
-      row.cells[i+1].textContent=v;
-    });
-  });
-
-  fetch("/matches/scores/",{
-    method:"POST",
-    headers:{Authorization:`Bearer ${token}`,"Content-Type":"application/json"},
-    body:JSON.stringify({match_id:currentMatch.match_id,scores})
-  });
-
-  alert("Scores saved!");
-};
-
-/* ================= MATCH HISTORY ================= */
-function renderMatchHistory(matches){
-  const container=document.getElementById("matchHistory");
-  container.innerHTML="";
-  if(!matches.length){ container.textContent="No matches yet"; return; }
-
-  matches.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at))
-
-  const table=document.createElement("table");
-  table.innerHTML="<thead><tr><th>Date</th><th>Players</th><th>Scores</th><th>Details</th></tr></thead>";
-  const tbody=document.createElement("tbody");
-
-matches.forEach(m => {
-  const tr = document.createElement("tr");
-
-  const tdDate = document.createElement("td");
-  tdDate.textContent = m.date;
-
-  const tdCount = document.createElement("td");
-  tdCount.textContent = m.player_count;
-
-
-  const tdScores = document.createElement("td");
-  const scoresArray = Object.values(m.scores);
-  const max = Math.max(...scoresArray.map(s => s.score));
-
-scoresArray.forEach((s, i) => {
-  // create single element, <b> if score == max, else <span>
-  const element = document.createElement(s.score === max ? "b" : "span");
-  element.textContent = `${s.username}:${s.score}`;
-
-  tdScores.appendChild(element);
-
-  // "|"- symbol only between elements
-  if (i < scoresArray.length - 1) {
-    tdScores.appendChild(document.createTextNode(" | "));
-  }
-});
-
-  const tdBtn = document.createElement("td");
-  const btn = document.createElement("button");
-  btn.textContent = "🔍";
-  btn.addEventListener("click", () => showMatchDetails(m.match_id));
-  tdBtn.appendChild(btn);
-
-  tr.append(tdDate, tdCount, tdScores, tdBtn);
-  tbody.appendChild(tr);
-});
-
-  table.appendChild(tbody);
-  container.appendChild(table);
-}
-
-/* ================= FILTERS ================= */
-filterPlayerCount.onchange=applyFilters;
-filterPlayerName.oninput=applyFilters;
-
-function applyFilters(){
-  let f=allMatches;
-  const c=filterPlayerCount.value;
-  const n = filterPlayerName.value.toLowerCase().slice(0, 30);
-  if(c) f=f.filter(m=>m.player_count==c);
-  if(n) f=f.filter(m=>m.players.some(p=>p.toLowerCase().includes(n)));
-  renderMatchHistory(f);
-}
-
-/* ================= MATCH DETAIL MODAL ================= */
-async function showMatchDetails(id){
-  const data = await fetch(`/matches/${id}`,{headers:{Authorization:`Bearer ${token}`}}).then(r=>r.json());
-  const div=document.getElementById("matchDetailContent");
-  div.innerHTML="<h2>Match Details</h2>";
-
-  if(data.map) div.appendChild(renderMap(data.map));
-  div.innerHTML+=`<p><b>Island:</b> ${data.island}</p>
-                  <p><b>Caves:</b> ${data.caves}</p>
-                  <p><b>Capitols:</b> ${data.capitols}</p>`;
-
-  for(let p in data.players){
-    div.innerHTML+=`<h4>${p} (Total: ${data.players[p].total})</h4><ul>`;
-    for(let t in data.players[p].details){
-      div.innerHTML+=`<li>${t}: ${data.players[p].details[t]}</li>`;
+
+  <!-- MATCH DETAIL MODAL -->
+  <div id="matchDetailModal">
+    <div id="matchDetailBox">
+      <button onclick="closeMatchDetails()" data-i18n="close"></button>
+      <div id="matchDetailContent"></div>
+    </div>
+  </div>
+
+  <div class="main-layout">
+
+    <!-- LEFT PANEL -->
+    <div class="left-panel">
+      <form autocomplete="off">
+        <h1>Kingdom Builder</h1>
+
+        <label data-i18n="player_count"></label>
+
+        <select id="playerCount">
+          <option value="" data-i18n="select_players"></option>
+          <option value="2" data-i18n="players_count" data-count="2"></option>
+          <option value="3" data-i18n="players_count" data-count="3"></option>
+          <option value="4" data-i18n="players_count" data-count="4"></option>
+          <option value="5" data-i18n="players_count" data-count="5"></option>
+        </select>
+
+        <h3 data-i18n="select_players"></h3>
+
+        <div id="playerInputContainer">
+          <input id="playerInput" data-i18n-placeholder="enter_player_name" disabled>
+          <div id="suggestions"></div>
+        </div>
+
+        <div class="player-row">
+          <div class="player-left">
+            <div id="selectedPlayers"></div>
+            <p data-i18n="selected_players">: <b id="playerCountDisplay">0</b></p>
+          </div>
+
+          <div class="player-right">
+            <label for="startPlayer">Start Player:</label>
+            <select id="startPlayer"></select>
+          </div>
+        </div>
+
+        <button id="startGameBtn" disabled data-i18n="create_match"></button>
+      </form>
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div class="right-panel">
+      <h3 data-i18n="match_settings"></h3>
+      <div id="matchSettings">No match created yet!!</div>
+
+      <h3 id="tasks_and_scores" data-i18n="tasks_scores" class="hidden"></h3>
+      <div id="tasksContainer"></div>
+
+      <button id="saveScoresBtn" class="hidden" data-i18n="save_scores"></button>
+    </div>
+
+  </div>
+
+  <hr>
+
+  <!-- MATCH HISTORY -->
+  <h3 data-i18n="played_matches"></h3>
+
+  <div id="matchFilters">
+    <label data-i18n="player_count"></label>
+
+    <select id="filterPlayerCount">
+      <option value="" data-i18n="all"></option>
+      <option value="2" data-i18n="players_count" data-count="2"></option>
+      <option value="3" data-i18n="players_count" data-count="3"></option>
+      <option value="4" data-i18n="players_count" data-count="4"></option>
+      <option value="5" data-i18n="players_count" data-count="5"></option>
+    </select>
+
+    <label data-i18n="player_name"></label>
+    <input id="filterPlayerName" data-i18n-placeholder="enter_name">
+  </div>
+
+  <div id="matchHistory"></div>
+
+  <hr>
+
+  <!-- STATISTICS -->
+  <h3 data-i18n="statistics"></h3>
+
+  <div style="display:flex; gap:15px; align-items:center; flex-wrap:wrap; margin-bottom:15px;">
+    <label><b>View:</b></label>
+
+    <select id="statsView">
+      <option value="totalScores">Total Scores</option>
+      <option value="wins">Wins</option>
+      <option value="tasksPlayed">Tasks played count</option>
+      <option value="scoreProgress">Score progress (Line Chart)</option>
+    </select>
+
+    <label><b>Compare Players:</b></label>
+    <select id="comparePlayers" multiple size="4" style="min-width:200px;"></select>
+  </div>
+
+  <div id="visualisation"></div>
+
+
+  <!-- IMPORTANT: Scripts at the end -->
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="/script/i18n.js"></script>
+  <script src="/script/statistics.js"></script>
+
+  <script>
+    /* ================= AUTH ================= */
+    const token = localStorage.getItem("token");
+    if (!token) window.location.href = "/static/index.html";
+
+    if (!localStorage.getItem("token")) {
+      window.location.replace("/");
     }
-    div.innerHTML+="</ul>";
-  }
 
-  matchDetailModal.style.display="block";
-}
+    /* ================= GLOBALS ================= */
+    let users = [], selectedPlayers = [], currentTasks = [], currentMatch = null, MAX_PLAYERS = 0, allMatches = [];
+    let editingMatchId = null;
 
-function closeMatchDetails(){
-  matchDetailModal.style.display="none";
-}
-</script>
+    const input = document.getElementById("playerInput");
+    const suggestions = document.getElementById("suggestions");
+    const selectedContainer = document.getElementById("selectedPlayers");
+    const countDisplay = document.getElementById("playerCountDisplay");
+    const startBtn = document.getElementById("startGameBtn");
+    const matchSettingsDiv = document.getElementById("matchSettings");
+    const tasksContainer = document.getElementById("tasksContainer");
+    const saveScoresBtn = document.getElementById("saveScoresBtn");
+
+    window.addEventListener("DOMContentLoaded", async () => {
+      playerCount.value = "";
+      MAX_PLAYERS = 0;
+      selectedPlayers = [];
+      renderSelectedPlayers();
+      renderStartPlayerSelect();
+      saveScoresBtn.classList.add("hidden");
+      updateStartButton();
+
+      await fetchUsers();
+      await fetchMyMatches();
+    });
+
+    /* ================= API LOAD ================= */
+    async function fetchUsers() {
+      users = await fetch("/users", { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json());
+    }
+
+    async function fetchMyMatches() {
+      allMatches = await fetch("/matches/my", { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json());
+      renderMatchHistory(allMatches);
+
+      // statistics setup
+      if (typeof populateComparePlayers === "function") {
+        populateComparePlayers(allMatches);
+      }
+
+      if (typeof updateStatisticsView === "function") {
+        updateStatisticsView();
+      }
+    }
+
+    /* ================= PLAYER SELECTION ================= */
+    playerCount.addEventListener("change", e => {
+      MAX_PLAYERS = +e.target.value || 0;
+      selectedPlayers = [];
+      renderSelectedPlayers();
+      input.disabled = !MAX_PLAYERS;
+      updateStartButton();
+    });
+
+    input.addEventListener("input", () => {
+      const q = input.value.toLowerCase();
+      suggestions.innerHTML = "";
+      if (!q) return;
+
+      users.filter(u => u.name.toLowerCase().includes(q) && !selectedPlayers.includes(u.name))
+        .forEach(u => {
+          const d = document.createElement("div");
+          d.textContent = u.name;
+          d.className = "suggestion-item";
+          d.onclick = () => addPlayer(u.name);
+          suggestions.appendChild(d);
+        });
+    });
+
+    function addPlayer(name) {
+      if (selectedPlayers.length >= MAX_PLAYERS) return;
+      selectedPlayers.push(name);
+      input.value = "";
+      suggestions.innerHTML = "";
+      renderSelectedPlayers();
+      renderStartPlayerSelect();
+      updateStartButton();
+    }
+
+    function removePlayer(name) {
+      selectedPlayers = selectedPlayers.filter(p => p !== name);
+      renderSelectedPlayers();
+      renderStartPlayerSelect();
+      updateStartButton();
+    }
+
+    function renderSelectedPlayers() {
+      selectedContainer.innerHTML = "";
+      selectedPlayers.forEach(p => {
+        const s = document.createElement("span");
+        s.textContent = p;
+        s.className = "player-tag";
+        s.onclick = () => removePlayer(p);
+        selectedContainer.appendChild(s);
+      });
+      countDisplay.textContent = selectedPlayers.length;
+    }
+
+    function updateStartButton() {
+      startBtn.disabled = !(selectedPlayers.length === MAX_PLAYERS && MAX_PLAYERS > 0);
+    }
+
+    /* ================= START MATCH ================= */
+    startBtn.onclick = async () => {
+      if (startBtn.disabled) return;
+
+      startBtn.disabled = true;
+
+      try {
+        const startPlayer = document.getElementById("startPlayer").value;
+
+        const res = await fetch("/start_kingdom_builder", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            players: selectedPlayers,
+            start_player: startPlayer
+          })
+        });
+
+        currentMatch = await res.json();
+        if (!res.ok) {
+          alert(JSON.stringify(currentMatch));
+          return;
+        }
+
+        renderMatchSettings(currentMatch);
+        currentTasks = [...new Map(currentMatch.tasks.map(t => [t.name, t])).values()];
+        renderTasks();
+
+        saveScoresBtn.classList.remove("hidden");
+        tasks_and_scores.classList.remove("hidden");
+
+        await fetchMyMatches();
+      } finally {
+        startBtn.disabled = false;
+      }
+    };
+
+    /* ================= MAP & SETTINGS ================= */
+    function renderMatchSettings(m) {
+      matchSettingsDiv.innerHTML = "";
+      matchSettingsDiv.appendChild(renderMap(m.map));
+
+      const infoFields = [
+        { label: t("island"), value: m.island },
+        { label: t("caves"), value: Array.isArray(m.caves) ? m.caves.join(", ") : m.caves },
+        { label: t("capitols"), value: m.capitols }
+      ];
+
+      infoFields.forEach(field => {
+        const value = typeof field.value === "string" ? t(field.value) : field.value;
+        const p = document.createElement("p");
+        p.innerHTML = `<b>${field.label}:</b> ${value}`;
+        matchSettingsDiv.appendChild(p);
+      });
+    }
+
+    function renderMap(map) {
+      const grid = document.createElement("div");
+      grid.className = "map-grid";
+      map.forEach(([id, exp, name, , , , , ori]) => {
+        const d = document.createElement("div");
+        d.className = "map-tile";
+        d.innerHTML = `<div class="map-title">${t(name)}</div>
+                       <div class="map-meta">${exp} · ${ori === "upright" ? t("upright") : t("reversed")}</div>`;
+        grid.appendChild(d);
+      });
+      return grid;
+    }
+
+    /* ================= TASK TABLE ================= */
+    function renderTasks() {
+      tasksContainer.innerHTML = "";
+
+      if (!currentTasks?.length || !currentMatch) {
+        tasksContainer.textContent = t("no_match_created_yet");
+        saveScoresBtn.classList.add("hidden");
+        return;
+      }
+
+      const table = document.createElement("table");
+
+      const thead = document.createElement("thead");
+      const hr = document.createElement("tr");
+
+      const thTask = document.createElement("th");
+      thTask.textContent = t("task");
+      hr.appendChild(thTask);
+
+      selectedPlayers.forEach(p => {
+        const th = document.createElement("th");
+        th.textContent = p;
+        hr.appendChild(th);
+      });
+
+      thead.appendChild(hr);
+      table.appendChild(thead);
+
+      const tbody = document.createElement("tbody");
+
+      const uniqueTasks = [...new Map(currentTasks.map(t => [t.name, t])).values()];
+
+      uniqueTasks.forEach(task => {
+        const tr = document.createElement("tr");
+        const tdTask = document.createElement("td");
+        tdTask.textContent = t(task.name);
+        tdTask.dataset.task = task.name;
+        tr.appendChild(tdTask);
+
+        selectedPlayers.forEach(() => {
+          const td = document.createElement("td");
+          const inp = document.createElement("input");
+          inp.type = "number";
+          inp.value = 0;
+          inp.className = "score-input";
+          inp.addEventListener("input", () => inp.value = inp.value.replace(/[^0-9]/g, ""));
+          inp.addEventListener("blur", () => { if (inp.value === "") inp.value = 0; });
+          inp.addEventListener("input", recalculateTotals);
+          td.appendChild(inp);
+          tr.appendChild(td);
+        });
+
+        tbody.appendChild(tr);
+      });
+
+      const totalRow = document.createElement("tr");
+      totalRow.id = "totalRow";
+
+      const tdTotal = document.createElement("td");
+      tdTotal.innerHTML = `<b>${t("total")}</b>`;
+      totalRow.appendChild(tdTotal);
+
+      selectedPlayers.forEach(() => {
+        const td = document.createElement("td");
+        td.textContent = "0";
+        totalRow.appendChild(td);
+      });
+
+      tbody.appendChild(totalRow);
+      table.appendChild(tbody);
+      tasksContainer.appendChild(table);
+
+      saveScoresBtn.disabled = false;
+    }
+
+    function recalculateTotals() {
+      const table = tasksContainer.querySelector("table");
+      if (!table) return;
+
+      const totals = Object.fromEntries(selectedPlayers.map(p => [p, 0]));
+
+      table.querySelectorAll("tbody tr").forEach(row => {
+        if (row.id === "totalRow") return;
+
+        selectedPlayers.forEach((p, i) => {
+          const v = parseInt(row.cells[i + 1].querySelector("input")?.value) || 0;
+          totals[p] += v;
+        });
+      });
+
+      const totalRow = document.getElementById("totalRow");
+      selectedPlayers.forEach((p, i) => totalRow.cells[i + 1].textContent = totals[p]);
+    }
+
+    /* ================= SAVE SCORES ================= */
+    saveScoresBtn.onclick = async () => {
+      const table = tasksContainer.querySelector("table");
+      const scores = {};
+
+      table.querySelectorAll("tbody tr").forEach(row => {
+        if (row.id === "totalRow") return;
+
+        const task = row.cells[0].dataset.task;
+        scores[task] = {};
+
+        selectedPlayers.forEach((p, i) => {
+          const input = row.cells[i + 1].querySelector("input");
+          const v = parseInt(input.value) || 0;
+          scores[task][p] = v;
+        });
+      });
+
+      const res = await fetch(`/matches/${currentMatch.match_id}/scores`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ scores })
+      });
+
+      if (!res.ok) {
+        alert("Save failed");
+        return;
+      }
+
+      saveScoresBtn.disabled = true;
+      table.querySelectorAll("input").forEach(inp => inp.disabled = true);
+
+      await fetchMyMatches();
+      alert("Scores saved!");
+    };
+
+    /* ================= MATCH HISTORY ================= */
+    function renderMatchHistory(matches) {
+      const container = document.getElementById("matchHistory");
+      container.innerHTML = "";
+
+      if (!matches.length) {
+        container.textContent = t("no_matches_yet");
+        return;
+      }
+
+      matches.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+      const table = document.createElement("table");
+
+      const thead = document.createElement("thead");
+      const headerRow = document.createElement("tr");
+
+      const thDate = document.createElement("th");
+      thDate.setAttribute("data-i18n", "date");
+
+      const thID = document.createElement("th");
+      thID.setAttribute("data-i18n", "match_id");
+
+      const thPlayers = document.createElement("th");
+      thPlayers.setAttribute("data-i18n", "players");
+
+      const thStartPlayer = document.createElement("th");
+      thStartPlayer.setAttribute("data-i18n", "start_player");
+
+      const thScores = document.createElement("th");
+      thScores.setAttribute("data-i18n", "scores");
+
+      const thDetails = document.createElement("th");
+      thDetails.setAttribute("data-i18n", "details");
+
+      headerRow.append(thDate, thID, thPlayers, thStartPlayer, thScores, thDetails);
+      thead.appendChild(headerRow);
+      table.appendChild(thead);
+
+      const tbody = document.createElement("tbody");
+
+      matches.forEach(m => {
+        const tr = document.createElement("tr");
+
+        const tdDate = document.createElement("td");
+        tdDate.textContent = m.date;
+
+        const tdID = document.createElement("td");
+        tdID.textContent = m.match_id || "x";
+
+        const tdCount = document.createElement("td");
+        tdCount.textContent = m.player_count || "x";
+
+        const tdStartPlayer = document.createElement("td");
+        tdStartPlayer.textContent = m.start_player || "x";
+
+        const tdScores = document.createElement("td");
+
+        const scoresArray = Object.values(m.scores || {});
+        const max = Math.max(...scoresArray.map(s => s.score || 0));
+
+        scoresArray.forEach((s, i) => {
+          const element = document.createElement(s.score === max ? "b" : "span");
+          element.textContent = `${s.username}:${s.score}`;
+          tdScores.appendChild(element);
+
+          if (i < scoresArray.length - 1) {
+            tdScores.appendChild(document.createTextNode(" | "));
+          }
+        });
+
+        const tdBtn = document.createElement("td");
+        const btn = document.createElement("button");
+        btn.textContent = "🔍";
+        btn.title = t("show_details");
+        btn.addEventListener("click", () => showMatchDetails(m.match_id));
+
+        tdBtn.appendChild(btn);
+
+        tr.append(tdDate, tdID, tdCount, tdStartPlayer, tdScores, tdBtn);
+        tbody.appendChild(tr);
+      });
+
+      table.appendChild(tbody);
+      container.appendChild(table);
+
+      loadLanguage(currentLang);
+    }
+
+    /* ================= FILTERS ================= */
+    filterPlayerCount.onchange = applyFilters;
+    filterPlayerName.oninput = applyFilters;
+
+    function applyFilters() {
+      const countFilter = filterPlayerCount.value;
+      const nameFilter = filterPlayerName.value.toLowerCase().trim().slice(0, 30);
+
+      const filteredMatches = allMatches.filter(match => {
+        if (countFilter && match.player_count != countFilter) return false;
+
+        if (nameFilter) {
+          const playerMatch = match.players?.some(player =>
+            player?.username?.toLowerCase()?.includes(nameFilter)
+          );
+
+          if (!playerMatch) return false;
+        }
+
+        return true;
+      });
+
+      renderMatchHistory(filteredMatches);
+    }
+
+    /* ================= MATCH DETAIL MODAL ================= */
+    async function showMatchDetails(id) {
+      editingMatchId = id;
+
+      const data = await fetch(`/matches/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      }).then(r => r.json());
+
+      const div = document.getElementById("matchDetailContent");
+      div.innerHTML = "";
+
+      const title = document.createElement("h2");
+      title.textContent = t("match_settings");
+      div.appendChild(title);
+
+      const editBtn = document.createElement("button");
+      editBtn.textContent = `✏️ ${t("edit_scores")}`;
+      editBtn.addEventListener("click", () => enableEditMode(id, data));
+      div.appendChild(editBtn);
+
+      if (data.map) div.appendChild(renderMap(data.map));
+
+      const metaWrapper = document.createElement("div");
+      metaWrapper.className = "match-meta-grid";
+
+      metaWrapper.innerHTML = `
+        <div class="match-meta-card">
+          <strong>${t("island")}</strong>
+          <div>${t(data.island)}</div>
+        </div>
+        <div class="match-meta-card">
+          <strong>${t("caves")}</strong>
+          <div>${t(data.caves)}</div>
+        </div>
+        <div class="match-meta-card">
+          <strong>${t("capitols")}</strong>
+          <div>${data.capitols}</div>
+        </div>
+      `;
+
+      div.appendChild(metaWrapper);
+
+      const playersArray = Object.values(data.players || {});
+      if (!playersArray.length) {
+        const noData = document.createElement("p");
+        noData.textContent = t("no_scores_available");
+        div.appendChild(noData);
+        matchDetailModal.style.display = "block";
+        return;
+      }
+
+      const table = document.createElement("table");
+
+      const thead = document.createElement("thead");
+      const headerRow = document.createElement("tr");
+
+      const thTask = document.createElement("th");
+      thTask.textContent = t("task");
+      headerRow.appendChild(thTask);
+
+      playersArray.forEach(p => {
+        const th = document.createElement("th");
+        th.textContent = p.username;
+        headerRow.appendChild(th);
+      });
+
+      thead.appendChild(headerRow);
+      table.appendChild(thead);
+
+      const tbody = document.createElement("tbody");
+      const taskNames = [...new Set(playersArray.flatMap(p => Object.keys(p.details || {})))];
+
+      taskNames.forEach(task => {
+        const tr = document.createElement("tr");
+
+        const tdTask = document.createElement("td");
+        tdTask.textContent = t(task);
+        tdTask.dataset.task = task;
+        tr.appendChild(tdTask);
+
+        playersArray.forEach(p => {
+          const td = document.createElement("td");
+          td.textContent = p.details?.[task] || 0;
+          tr.appendChild(td);
+        });
+
+        tbody.appendChild(tr);
+      });
+
+      const totalRow = document.createElement("tr");
+      const tdTotalLabel = document.createElement("td");
+      tdTotalLabel.innerHTML = `<strong>${t("total")}</strong>`;
+      totalRow.appendChild(tdTotalLabel);
+
+      playersArray.forEach(p => {
+        const td = document.createElement("td");
+        td.innerHTML = `<strong>${p.total || 0}</strong>`;
+        totalRow.appendChild(td);
+      });
+
+      tbody.appendChild(totalRow);
+      table.appendChild(tbody);
+
+      div.appendChild(table);
+      matchDetailModal.style.display = "block";
+    }
+
+    function closeMatchDetails() {
+      matchDetailModal.style.display = "none";
+    }
+
+    function enableEditMode(matchId, data) {
+      editingMatchId = matchId;
+      const div = document.getElementById("matchDetailContent");
+      div.innerHTML = "";
+
+      const playersArray = Object.values(data.players || {});
+      if (!playersArray.length) {
+        alert(t("no_players_found"));
+        return;
+      }
+
+      const taskNames = [...new Set(playersArray.flatMap(p => Object.keys(p.details || {})))];
+
+      const table = document.createElement("table");
+
+      const thead = document.createElement("thead");
+      const trHead = document.createElement("tr");
+      const thTask = document.createElement("th");
+      thTask.textContent = t("task");
+      trHead.appendChild(thTask);
+
+      playersArray.forEach(p => {
+        const th = document.createElement("th");
+        th.textContent = p.username;
+        trHead.appendChild(th);
+      });
+
+      thead.appendChild(trHead);
+      table.appendChild(thead);
+
+      const tbody = document.createElement("tbody");
+
+      taskNames.forEach(task => {
+        const tr = document.createElement("tr");
+
+        const tdTask = document.createElement("td");
+        tdTask.textContent = t(task);
+        tdTask.dataset.task = task;
+        tr.appendChild(tdTask);
+
+        playersArray.forEach(p => {
+          const td = document.createElement("td");
+          const input = document.createElement("input");
+          input.type = "number";
+          input.value = p.details?.[task] || 0;
+          input.className = "score-input";
+          td.appendChild(input);
+          tr.appendChild(td);
+        });
+
+        tbody.appendChild(tr);
+      });
+
+      table.appendChild(tbody);
+      div.appendChild(table);
+
+      const saveBtn = document.createElement("button");
+      saveBtn.id = "saveEditedScoresBtn";
+      saveBtn.textContent = `💾 ${t("save_changes")}`;
+      saveBtn.onclick = saveEditedScores;
+      div.appendChild(saveBtn);
+    }
+
+    function renderStartPlayerSelect() {
+      const select = document.getElementById("startPlayer");
+      select.innerHTML = selectedPlayers
+        .map(p => `<option value="${p}">${p}</option>`)
+        .join("");
+    }
+
+    async function saveEditedScores() {
+      const matchId = editingMatchId;
+      if (!matchId) {
+        alert("Match ID missing");
+        return;
+      }
+
+      const table = document.querySelector("#matchDetailContent table");
+      if (!table) {
+        alert("Table missing");
+        return;
+      }
+
+      const rows = table.querySelectorAll("tbody tr");
+      const scores = {};
+
+      rows.forEach(row => {
+        const task = row.cells[0].dataset.task;
+        scores[task] = {};
+
+        const inputs = row.querySelectorAll("input");
+        inputs.forEach((input, i) => {
+          const username = table.querySelector("thead tr").cells[i + 1].textContent;
+          scores[task][username] = parseInt(input.value) || 0;
+        });
+      });
+
+      const res = await fetch(`/matches/${matchId}/scores`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ scores })
+      });
+
+      if (!res.ok) {
+        alert("Update failed");
+        return;
+      }
+
+      alert("Scores updated!");
+
+      await fetchMyMatches();
+      showMatchDetails(matchId);
+    }
+  </script>
 
 </body>
 </html>

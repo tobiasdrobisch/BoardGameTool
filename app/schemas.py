@@ -1,8 +1,7 @@
 from datetime import datetime
-from typing import Any, List, Dict
+from typing import Any, List, Dict, Optional
 
 from pydantic import BaseModel, EmailStr, field_validator
-
 
 class UserBase(BaseModel):
     """
@@ -74,7 +73,7 @@ class GameCreate(BaseModel):
     map: List[List[Any]]
     tasks: List[str]
     board_game_id: int
-
+    start_player_id: Optional[int] = None
 
 class GameRead(BaseModel):
     """
@@ -82,7 +81,36 @@ class GameRead(BaseModel):
     """
     pass
 
-class MatchScoresCreate(BaseModel):
-    match_id: int
+class MatchStartPlayerUpdate(BaseModel):
+    start_player_id: int
+
+class MatchTaskUpdate(BaseModel):
+    old_task: str
+    new_task: str
+
+class MatchScoresUpdate(BaseModel):
     scores: Dict[str, Dict[str, int]] # { "Task 1": { "Player1": 5, "Player2": 3 }, ... }
 
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "scores": {
+                    "task1": {
+                        "player1": 0,
+                        "player2": 0,
+                        "player...": 0
+                    },
+                    "task2": {
+                        "player1": 0,
+                        "player2": 0,
+                        "player...": 0
+                    },
+                    "task...": {
+                        "player1": 0,
+                        "player2": 0,
+                        "player...": 0
+                    }
+                }
+            }
+        }
+    }
