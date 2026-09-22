@@ -474,7 +474,7 @@
 
       const infoFields = [
         { label: t("island"), value: m.island },
-        { label: t("caves"), value: m.caves },
+        { label: t("caves"), value: Array.isArray(m.caves) ? m.caves.join(", ") : m.caves },
         { label: t("capitols"), value: m.capitols }
       ];
 

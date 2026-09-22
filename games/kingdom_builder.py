@@ -61,11 +61,19 @@ def harvest_expansion():
 def island_queenie():
     return random.choice(["wood", "canyon"])
 
-#TODO: get random number for map tile position of each cave
-def caves_queenie():
-        return "caves"
+#TODO: get random number for map tile position of each cave, then remove cave in frontend if caves 0
+def caves_queenie(map):
+    caves = []
+    for i in map:
+        possible_mountains = i[6]
+        if possible_mountains:
+            cave_position = random.randint(1, possible_mountains)
+        else:
+            cave_position = 0
+        caves.append(f"{cave_position}/{possible_mountains}")
+    return caves
 
-#TODO: get random number(s) for capitol(s)
+#TODO: get random number(s) for position of capitol(s)
 def capitols_queenie():
     both_capitols = random.choice([True, False])
     if both_capitols:
@@ -111,8 +119,36 @@ CROSSROAD_TASKS = [
 ]
 
 
-# [ID, "expansion", "title", castles, palaces, Silos, Mountain Caves]
+# [ID, "expansion", "title", castles, palaces, silos, mountain caves, nomad tents]
+# "upside" / "reversed" is getting added later to chosen map_tiles
 MAP_TILES = [
+    [1, "KB", "map_oracle", 2, 0, 0, 2, 0],
+    [2, "KB", "map_harbor", 2, 0, 0, 1, 0],
+    [3, "KB", "map_oasis", 1, 0, 0, 0, 0],
+    [4, "KB", "map_paddock", 1, 0, 0, 13, 0],
+    [5, "KB", "map_barn", 1, 0, 0, 9, 0],
+    [6, "KB", "map_tower", 1, 0, 0, 9, 0],
+    [7, "KB", "map_farm", 1, 0, 0, 2, 0],
+    [8, "KB", "map_tavern", 1, 0, 0, 9, 0],
+    [9, "N", "map_quarry", 0, 0, 0, 3, 3],
+    [10, "N", "map_village", 0, 0, 0, 4, 1],
+    [11, "N", "map_garden", 0, 0, 0, 5, 1],
+    [12, "N", "map_caravan", 0, 0, 0, 1, 1],
+    [13, "C", "map_lighthouse", 1, 0, 0, 3, 0],
+    [14, "C", "map_fort", 1, 0, 0, 6, 0],
+    [15, "C", "map_wagon", 1, 0, 0, 6, 0],
+    [16, "C", "map_crossroads", 1, 0, 0, 1, 0],
+    [17, "H", "map_watchtower", 0, 0, 1, 1, 0],
+    [18, "H", "map_scout_cabin", 1, 0, 1, 2, 0],
+    [19, "H", "map_water_mill", 0, 0, 1, 6, 0],
+    [20, "H", "map_palisade", 0, 0, 1, 3, 0],
+    [21, "M", "map_refuge", 0, 1, 0, 6, 0],
+    [22, "M", "map_temple", 0, 1, 0, 1, 0],
+    [23, "M", "map_fountain", 0, 1, 0, 2, 0],
+    [24, "M", "map_canoe", 0, 1, 0, 7, 0]
+]
+# old version
+"""MAP_TILES = [
     [1, "KB", "map_oracle", 2, 0, 0, 2],
     [2, "KB", "map_harbor", 2, 0, 0, 1],
     [3, "KB", "map_oasis", 1, 0, 0, 0],
@@ -137,7 +173,7 @@ MAP_TILES = [
     [22, "M", "map_temple", 0, 1, 0, 1],
     [23, "M", "map_fountain", 0, 1, 0, 2],
     [24, "M", "map_canoe", 0, 1, 0, 7]
-]
+]"""
 
 def create_match():
 
@@ -149,21 +185,21 @@ def create_match():
     caves = 0
     capitols = 0
 
+    # map
+    map = select_map_tiles()
+
     #   Island (Queenie 3)
     if random.choice([True, False]):
         island = island_queenie()
         #output += island + "\n"
     #   Caves (Queenie 2)
     if random.choice([True, False]):
-        caves = caves_queenie()
+        caves = caves_queenie(map)
         #output += str(caves) + "\n"
     #   Capitol (Queenie 1)
     if random.choice([True, False]):
         capitols = capitols_queenie()
         #output += str(capitols) + "\n"
-
-    # map
-    map = select_map_tiles()
 
     # tasks
     tasks = select_tasks(map, island, capitols)
