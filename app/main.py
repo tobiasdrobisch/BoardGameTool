@@ -228,6 +228,12 @@ def remove_boardgame_from_user(
         )
         .first()
     )
+@app.post("/matches/scores/")
+def save_match_scores(payload: schemas.MatchScoresCreate, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    match_players = crud.get_match_players_by_match_id(db, payload.match_id)
+    if not match_players:
+        raise HTTPException(status_code=404, detail="No players found for this game")
+
 
     if not entry:
         raise HTTPException(status_code=404, detail="Game not assigned")
