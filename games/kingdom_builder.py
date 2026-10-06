@@ -202,6 +202,8 @@ def create_match():
         #output += str(capitols) + "\n"
 
     # tasks
+    print(map)
+    print("kurz nachdem queenies erstellt wurden")
     tasks = select_tasks(map, island, capitols)
 
 
@@ -211,7 +213,8 @@ def create_match():
 
     print(output)
 
-
+    print("map nochmal bevor es zum frontend geht")
+    print(map)
     return {
         "board_game_id": 1,
         "map": map,

@@ -1,155 +1,981 @@
 <!DOCTYPE html>
+
 <html lang="de">
+
 <head>
     <meta charset="UTF-8">
     <title>Dashboard</title>
 
-        <style>
-        #language-switcher {
-    position: fixed;
-    top: 10px;
-    right: 10px;
-}
-    </style>
+
+<style>
+    #language-switcher {
+        position: fixed;
+        top: 10px;
+        right: 10px;
+    }
+</style>
+
 </head>
+
 <body>
 
 
+<!-- Language switcher -->
 <div id="language-switcher">
     <button onclick="loadLanguage('de')">DE</button>
     <button onclick="loadLanguage('en')">EN</button>
 </div>
 
+
 <!-- Account Infos -->
 <div>
     <h2 data-i18n="my_profile"></h2>
-    <p><b><span data-i18n="e-mail">E-Mail</span>:</b> <span id="email"></span></p>
-    <p><b><span data-i18n="username">Username</span>:</b> <span id="username"></span></p>
-    <button onclick="logout()" data-i18n="logout"></button>
+
+    <p>
+        <b>
+            <span data-i18n="e-mail">E-Mail</span>:
+        </b>
+        <span id="email"></span>
+    </p>
+
+    <p>
+        <b>
+            <span data-i18n="username">Username</span>:
+        </b>
+        <span id="username"></span>
+    </p>
+
+    <button
+        onclick="logout()"
+        data-i18n="logout">
+    </button>
 </div>
 
+
 <hr>
+
 
 <!-- My games -->
 <div>
     <h2 data-i18n="my_games"></h2>
 
     <select id="gameSelect"></select>
-    <button onclick="addSelectedGame()" data-i18n="add_game"></button>
-        <ul id="gameList"></ul>
-    <button onclick="addGame('kingdom_builder')">
-        add Kingdom Builder
+
+    <button
+        onclick="addSelectedGame()"
+        data-i18n="add_game">
     </button>
 
     <ul id="gameList"></ul>
 </div>
 
+
 <hr>
+
 
 <!-- Delete User -->
 <div>
     <h2 data-i18n="delete_account"></h2>
-    <button onclick="deleteUser()" data-i18n="delete_account"></button>
+
+    <button
+        onclick="deleteUser()"
+        data-i18n="delete_account">
+    </button>
 </div>
 
 
 <script src="/script/i18n.js"></script>
+
+
 <script>
-const token = localStorage.getItem("token");
 
-// Login-Check
-if (!token) {
-    window.location.href = "/static/index.html";
-}
+    // ==================================================
+    // AUTHENTICATION
+    // ==================================================
 
-// selected games (local)
-let games = JSON.parse(localStorage.getItem("games")) || [];
+    const token = localStorage.getItem("token");
 
-// load account
-async function loadAccount() {
-    try {
-        console.log("Fetching /me/ with token:", token); // Debug
 
-        const res = await fetch("/me/", {
-            headers: {
-                "Authorization": "Bearer " + token
+    // === DEBUG ===
+    console.log("[Dashboard] ========================================");
+    console.log("[Dashboard] Dashboard loaded.");
+    console.log("[Dashboard] Authentication token exists:", !!token);
+    console.log("[Dashboard] ========================================");
+
+
+    // Login-Check
+    if (!token) {
+
+        // === DEBUG ===
+        console.warn(
+            "[Dashboard] No authentication token found."
+        );
+
+        console.warn(
+            "[Dashboard] Redirecting to login page."
+        );
+
+        window.location.href = "/static/index.html";
+    }
+
+
+    // ==================================================
+    // DATA
+    // ==================================================
+
+    // === RESTORED ===
+    // These variables were part of the backend-based
+    // game management that was removed by the merge.
+
+    let allBoardGames = [];
+    let myBoardGames = [];
+
+
+    // ==================================================
+    // ACCOUNT
+    // ==================================================
+
+    async function loadAccount() {
+
+        // === DEBUG ===
+        console.log("[Dashboard] loadAccount() started.");
+
+        try {
+
+            // === DEBUG ===
+            console.log(
+                "[Dashboard] Fetching /me/ ..."
+            );
+
+
+            const res = await fetch("/me/", {
+                headers: {
+                    Authorization: "Bearer " + token
+                }
+            });
+
+
+            // === DEBUG ===
+            console.log(
+                "[Dashboard] /me/ response status:",
+                res.status
+            );
+
+
+            if (!res.ok) {
+
+                const errData =
+                    await res.json().catch(() => ({}));
+
+
+                // === DEBUG ===
+                console.error(
+                    "[Dashboard] /me/ request failed:",
+                    errData
+                );
+
+
+                localStorage.removeItem("token");
+
+
+                // === DEBUG ===
+                console.warn(
+                    "[Dashboard] Invalid token removed."
+                );
+
+                console.warn(
+                    "[Dashboard] Redirecting to login page."
+                );
+
+
+                window.location.href =
+                    "/static/index.html";
+
+                return;
             }
-        });
 
-        console.log("Response status:", res.status); // Debug
 
-        if (!res.ok) {
-            const errData = await res.json().catch(() => ({}));
-            console.error("Error response:", errData);
-            localStorage.removeItem("token");
-            window.location.href = "/static/index.html";
+            const data = await res.json();
+
+
+            // === DEBUG ===
+            console.log(
+                "[Dashboard] User data received:",
+                data
+            );
+
+
+            document.getElementById("email").innerText =
+                data.email;
+
+            document.getElementById("username").innerText =
+                data.name;
+
+
+            // === DEBUG ===
+            console.log(
+                "[Dashboard] Account information rendered."
+            );
+
+        } catch (err) {
+
+            // === DEBUG ===
+            console.error(
+                "[Dashboard] Network error while loading /me/:",
+                err
+            );
+
+            alert(
+                "Could not load account: " + err
+            );
+        }
+    }
+
+
+    // ==================================================
+    // LOAD ALL BOARD GAMES
+    // ==================================================
+
+    // === RESTORED ===
+
+    async function loadBoardGames() {
+
+        // === DEBUG ===
+        console.log(
+            "[Dashboard] loadBoardGames() started."
+        );
+
+        console.log(
+            "[Dashboard] Fetching /boardgames ..."
+        );
+
+
+        try {
+
+            const res =
+                await fetch("/boardgames");
+
+
+            // === DEBUG ===
+            console.log(
+                "[Dashboard] /boardgames response status:",
+                res.status
+            );
+
+
+            if (!res.ok) {
+
+                const errorText =
+                    await res.text().catch(() => "");
+
+
+                // === DEBUG ===
+                console.error(
+                    "[Dashboard] /boardgames request failed."
+                );
+
+                console.error(
+                    "[Dashboard] Server response:",
+                    errorText
+                );
+
+                return;
+            }
+
+
+            allBoardGames =
+                await res.json();
+
+
+            // === DEBUG ===
+            console.log(
+                "[Dashboard] All board games loaded:",
+                allBoardGames
+            );
+
+            console.log(
+                "[Dashboard] Number of board games:",
+                allBoardGames.length
+            );
+
+        } catch (err) {
+
+            // === DEBUG ===
+            console.error(
+                "[Dashboard] Network error while loading /boardgames:",
+                err
+            );
+        }
+    }
+
+
+    // ==================================================
+    // LOAD USER'S BOARD GAMES
+    // ==================================================
+
+    // === RESTORED ===
+
+    async function loadMyBoardGames() {
+
+        // === DEBUG ===
+        console.log(
+            "[Dashboard] loadMyBoardGames() started."
+        );
+
+        console.log(
+            "[Dashboard] Fetching /users/me/boardgames ..."
+        );
+
+
+        try {
+
+            const res =
+                await fetch("/users/me/boardgames", {
+
+                    headers: {
+                        Authorization: "Bearer " + token
+                    }
+                });
+
+
+            // === DEBUG ===
+            console.log(
+                "[Dashboard] /users/me/boardgames response status:",
+                res.status
+            );
+
+
+            if (!res.ok) {
+
+                const errorText =
+                    await res.text().catch(() => "");
+
+
+                // === DEBUG ===
+                console.error(
+                    "[Dashboard] /users/me/boardgames request failed."
+                );
+
+                console.error(
+                    "[Dashboard] Server response:",
+                    errorText
+                );
+
+                return;
+            }
+
+
+            myBoardGames =
+                await res.json();
+
+
+            // === DEBUG ===
+            console.log(
+                "[Dashboard] User's board games loaded:",
+                myBoardGames
+            );
+
+            console.log(
+                "[Dashboard] Number of user's board games:",
+                myBoardGames.length
+            );
+
+        } catch (err) {
+
+            // === DEBUG ===
+            console.error(
+                "[Dashboard] Network error while loading user's games:",
+                err
+            );
+        }
+    }
+
+
+    // ==================================================
+    // RENDER MY GAMES
+    // ==================================================
+
+    // === RESTORED ===
+
+    function renderMyGames() {
+
+        // === DEBUG ===
+        console.log(
+            "[Dashboard] renderMyGames() started."
+        );
+
+
+        const list =
+            document.getElementById("gameList");
+
+
+        if (!list) {
+
+            // === DEBUG ===
+            console.error(
+                "[Dashboard] ERROR: #gameList not found."
+            );
+
             return;
         }
 
-        const data = await res.json();
-        console.log("User data received:", data); // Debug
 
-        document.getElementById("email").innerText = data.email;
-        document.getElementById("username").innerText = data.name;
-    } catch (err) {
-        console.error("Network error /me/:", err);
-        alert("Could not load account: " + err);
+        list.innerHTML = "";
+
+
+        // === DEBUG ===
+        console.log(
+            "[Dashboard] Rendering user's games:",
+            myBoardGames
+        );
+
+
+        myBoardGames.forEach(game => {
+
+            const li =
+                document.createElement("li");
+
+
+            const btn =
+                document.createElement("button");
+
+
+            btn.innerText =
+                game.name;
+
+
+            btn.onclick = () => {
+
+                // === DEBUG ===
+                console.log(
+                    "[Dashboard] Game clicked:",
+                    game
+                );
+
+
+                const gameUrl =
+                    `/static/${game.name.toLowerCase().replace(" ", "_")}.html`;
+
+
+                // === DEBUG ===
+                console.log(
+                    "[Dashboard] Navigating to:",
+                    gameUrl
+                );
+
+
+                window.location.href =
+                    gameUrl;
+            };
+
+
+            li.appendChild(btn);
+
+            list.appendChild(li);
+        });
+
+
+        // === DEBUG ===
+        console.log(
+            "[Dashboard] renderMyGames() finished."
+        );
     }
-}
 
 
-// show games
-function renderGames() {
-    const list = document.getElementById("gameList");
-    list.innerHTML = "";
+    // ==================================================
+    // RENDER DROPDOWN
+    // ==================================================
 
-    games.forEach(game => {
-        const li = document.createElement("li");
+    // === RESTORED ===
 
-        const btn = document.createElement("button");
-        btn.innerText = game === "kingdom_builder" ? "Kingdom Builder" : game;
-        btn.onclick = () => {
-            window.location.href = `/static/${game}.html`;
-        };
+    function renderDropdown() {
 
-        li.appendChild(btn);
-        list.appendChild(li);
-    });
-}
+        // === DEBUG ===
+        console.log(
+            "[Dashboard] renderDropdown() started."
+        );
 
-// Add game
-function addGame(gameName) {
-    if (!games.includes(gameName)) {
-        games.push(gameName);
-        localStorage.setItem("games", JSON.stringify(games));
-        renderGames();
-    } else {
-        alert("game is already added");
+
+        const select =
+            document.getElementById("gameSelect");
+
+
+        if (!select) {
+
+            // === DEBUG ===
+            console.error(
+                "[Dashboard] ERROR: #gameSelect not found."
+            );
+
+            return;
+        }
+
+
+        select.innerHTML = "";
+
+
+        const myIds =
+            myBoardGames.map(
+                game => game.id
+            );
+
+
+        // === DEBUG ===
+        console.log(
+            "[Dashboard] IDs of user's games:",
+            myIds
+        );
+
+
+        const available =
+            allBoardGames.filter(
+                game => !myIds.includes(game.id)
+            );
+
+
+        // === DEBUG ===
+        console.log(
+            "[Dashboard] Games available for adding:",
+            available
+        );
+
+
+        if (available.length === 0) {
+
+            const option =
+                document.createElement("option");
+
+
+            option.text =
+                "All games added";
+
+            option.disabled =
+                true;
+
+
+            select.appendChild(option);
+
+
+            // === DEBUG ===
+            console.log(
+                "[Dashboard] No games available for adding."
+            );
+
+
+            return;
+        }
+
+
+        available.forEach(game => {
+
+            const option =
+                document.createElement("option");
+
+
+            option.value =
+                game.id;
+
+            option.text =
+                game.name;
+
+
+            select.appendChild(option);
+        });
+
+
+        // === DEBUG ===
+        console.log(
+            "[Dashboard] Dropdown populated with",
+            available.length,
+            "game(s)."
+        );
     }
-}
 
-// Delete User
-async function deleteUser() {
-    if (!confirm("Do you want to delete your account?")) return;
 
-    const res = await fetch(`/users/me/`, {
-        method: "DELETE",
-        headers: { "Authorization": `Bearer ${token}` }
-    });
+    // ==================================================
+    // ADD GAME
+    // ==================================================
 
-    if (res.ok) {
-        localStorage.clear();
-        alert("Account deleted");
-        window.location.href = "/static/index.html";
-    } else {
-        alert("Deleting account failed");
+    // === RESTORED ===
+
+    async function addSelectedGame() {
+
+        // === DEBUG ===
+        console.log("[Dashboard] ========================================");
+        console.log(
+            "[Dashboard] addSelectedGame() started."
+        );
+
+
+        const select =
+            document.getElementById("gameSelect");
+
+
+        if (!select) {
+
+            // === DEBUG ===
+            console.error(
+                "[Dashboard] ERROR: #gameSelect not found."
+            );
+
+            return;
+        }
+
+
+        const gameId =
+            select.value;
+
+
+        // === DEBUG ===
+        console.log(
+            "[Dashboard] Selected game ID:",
+            gameId
+        );
+
+
+        if (!gameId) {
+
+            // === DEBUG ===
+            console.warn(
+                "[Dashboard] No game selected."
+            );
+
+            return;
+        }
+
+
+        const url =
+            `/users/me/boardgames/${gameId}`;
+
+
+        // === DEBUG ===
+        console.log(
+            "[Dashboard] Sending POST request:",
+            url
+        );
+
+
+        try {
+
+            const res =
+                await fetch(url, {
+
+                    method: "POST",
+
+                    headers: {
+                        Authorization: "Bearer " + token
+                    }
+                });
+
+
+            // === DEBUG ===
+            console.log(
+                "[Dashboard] Add-game response status:",
+                res.status
+            );
+
+
+            if (!res.ok) {
+
+                const errorText =
+                    await res.text().catch(() => "");
+
+
+                // === DEBUG ===
+                console.error(
+                    "[Dashboard] ERROR: Adding game failed."
+                );
+
+                console.error(
+                    "[Dashboard] Server response:",
+                    errorText
+                );
+
+
+                alert(
+                    "Adding the game failed. Check the browser console."
+                );
+
+
+                return;
+            }
+
+
+            let responseData = null;
+
+
+            try {
+
+                responseData =
+                    await res.json();
+
+            } catch (e) {
+
+                // === DEBUG ===
+                console.log(
+                    "[Dashboard] Add-game response has no JSON body."
+                );
+            }
+
+
+            // === DEBUG ===
+            console.log(
+                "[Dashboard] Game successfully added:",
+                responseData
+            );
+
+
+            // === RESTORED ===
+            console.log(
+                "[Dashboard] Refreshing games..."
+            );
+
+
+            await refreshGames();
+
+
+            // === DEBUG ===
+            console.log(
+                "[Dashboard] addSelectedGame() finished successfully."
+            );
+
+
+        } catch (err) {
+
+            // === DEBUG ===
+            console.error(
+                "[Dashboard] Network error while adding game:",
+                err
+            );
+
+
+            alert(
+                "Network error while adding the game. Check the console."
+            );
+        }
+
+
+        // === DEBUG ===
+        console.log("[Dashboard] ========================================");
     }
-}
 
 
-/* =========================
-   LOGOUT USER
+    // ==================================================
+    // REFRESH
+    // ==================================================
+
+    // === RESTORED ===
+
+    async function refreshGames() {
+
+        // === DEBUG ===
+        console.log(
+            "[Dashboard] refreshGames() started."
+        );
+
+
+        await loadMyBoardGames();
+
+
+        // === DEBUG ===
+        console.log(
+            "[Dashboard] User games reloaded."
+        );
+
+
+        renderMyGames();
+
+        renderDropdown();
+
+
+        // === DEBUG ===
+        console.log(
+            "[Dashboard] refreshGames() finished."
+        );
+    }
+
+
+    // ==================================================
+    // DELETE USER
+    // ==================================================
+
+    async function deleteUser() {
+
+        // === DEBUG ===
+        console.log(
+            "[Dashboard] deleteUser() started."
+        );
+
+
+        if (!confirm("Do you want to delete your account?")) {
+
+            // === DEBUG ===
+            console.log(
+                "[Dashboard] Account deletion cancelled."
+            );
+
+            return;
+        }
+
+
+        // === DEBUG ===
+        console.log(
+            "[Dashboard] Sending DELETE request to /users/me/ ..."
+        );
+
+
+        try {
+
+            const res =
+                await fetch(`/users/me/`, {
+
+                    method: "DELETE",
+
+                    headers: {
+                        "Authorization": `Bearer ${token}`
+                    }
+                });
+
+
+            // === DEBUG ===
+            console.log(
+                "[Dashboard] Delete-user response status:",
+                res.status
+            );
+
+
+            if (res.ok) {
+
+                // === DEBUG ===
+                console.log(
+                    "[Dashboard] Account successfully deleted."
+                );
+
+
+                localStorage.clear();
+
+
+                alert("Account deleted");
+
+
+                window.location.href =
+                    "/static/index.html";
+
+            } else {
+
+                const errorText =
+                    await res.text().catch(() => "");
+
+
+                // === DEBUG ===
+                console.error(
+                    "[Dashboard] Account deletion failed:",
+                    errorText
+                );
+
+
+                alert(
+                    "Deleting account failed"
+                );
+            }
+
+        } catch (err) {
+
+            // === DEBUG ===
+            console.error(
+                "[Dashboard] Network error while deleting account:",
+                err
+            );
+
+
+            alert(
+                "Network error while deleting the account."
+            );
+        }
+    }
+
+
+    // ==================================================
+    // LOGOUT
+    // ==================================================
+
+    function logout() {
+
+        // === DEBUG ===
+        console.log(
+            "[Dashboard] logout() called."
+        );
+
+
+        localStorage.removeItem("token");
+        localStorage.removeItem("username");
+
+
+        // === DEBUG ===
+        console.log(
+            "[Dashboard] Authentication data removed."
+        );
+
+
+        window.location.href =
+            "/static/index.html";
+    }
+
+
+    // ==================================================
+    // INITIAL LOAD
+    // ==================================================
+
+    async function init() {
+
+        // === DEBUG ===
+        console.log("[Dashboard] ========================================");
+        console.log(
+            "[Dashboard] init() started."
+        );
+
+
+        await loadAccount();
+
+        await loadBoardGames();
+
+        await loadMyBoardGames();
+
+
+        // === DEBUG ===
+        console.log(
+            "[Dashboard] Initial data loaded."
+        );
+
+        console.log(
+            "[Dashboard] allBoardGames:",
+            allBoardGames
+        );
+
+        console.log(
+            "[Dashboard] myBoardGames:",
+            myBoardGames
+        );
+
+
+        renderMyGames();
+
+        renderDropdown();
+
+
+        // === DEBUG ===
+        console.log(
+            "[Dashboard] init() finished."
+        );
+
+        console.log("[Dashboard] ========================================");
+    }
+
+
+    init();
+
 </script>
 
 </body>
+
 </html>
