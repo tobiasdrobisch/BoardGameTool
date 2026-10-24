@@ -1,5 +1,6 @@
 import random
 import datetime
+from app.debug_utils import debug
 
 setup_guide = ""
 
@@ -23,6 +24,7 @@ def select_tasks(map, island, number_of_capitols):
     tasks = random.sample(TASKS, 3)
 
     number_of_crossroad_tasks = 0
+    number_of_nomad_tents = 0
     number_of_castles = 0
     number_of_palaces = 0
 
@@ -34,6 +36,7 @@ def select_tasks(map, island, number_of_capitols):
             number_of_crossroad_tasks += 1
         number_of_palaces += map_tile[4]
         number_of_castles += map_tile[3]
+        number_of_nomad_tents += map_tile[7]
 
     crossroad_tasks = random.sample(CROSSROAD_TASKS, number_of_crossroad_tasks)
     tasks = tasks + crossroad_tasks
@@ -46,8 +49,13 @@ def select_tasks(map, island, number_of_capitols):
         tasks += ["task_capitols"]
     return tasks
 
-def nomads_expansion():
-    pass
+# choose nomad_tiles randomly
+def nomads_expansion(map):
+    number_of_nomad_tents = 0
+    for map_tile in map:
+        number_of_nomad_tents += map_tile[7]
+    return random.sample(NOMAD_TILES,number_of_nomad_tents)
+
 
 def crossroads_expansion():
     pass
@@ -126,7 +134,7 @@ MAP_TILES = [
     [2, "KB", "map_harbor", 2, 0, 0, 1, 0],
     [3, "KB", "map_oasis", 1, 0, 0, 0, 0],
     [4, "KB", "map_paddock", 1, 0, 0, 13, 0],
-    [5, "KB", "map_barn", 1, 0, 0, 9, 0],
+    [5, "KB", "map_barn", 1, 0, 0, 8, 0],
     [6, "KB", "map_tower", 1, 0, 0, 9, 0],
     [7, "KB", "map_farm", 1, 0, 0, 2, 0],
     [8, "KB", "map_tavern", 1, 0, 0, 9, 0],
@@ -147,33 +155,12 @@ MAP_TILES = [
     [23, "M", "map_fountain", 0, 1, 0, 2, 0],
     [24, "M", "map_canoe", 0, 1, 0, 7, 0]
 ]
-# old version
-"""MAP_TILES = [
-    [1, "KB", "map_oracle", 2, 0, 0, 2],
-    [2, "KB", "map_harbor", 2, 0, 0, 1],
-    [3, "KB", "map_oasis", 1, 0, 0, 0],
-    [4, "KB", "map_paddock", 1, 0, 0, 13],
-    [5, "KB", "map_barn", 1, 0, 0, 9],
-    [6, "KB", "map_tower", 1, 0, 0, 9],
-    [7, "KB", "map_farm", 1, 0, 0, 2],
-    [8, "KB", "map_tavern", 1, 0, 0, 9],
-    [9, "N", "map_quarry", 0, 0, 0, 3],
-    [10, "N", "map_village", 0, 0, 0, 4],
-    [11, "N", "map_garden", 0, 0, 0, 5],
-    [12, "N", "map_caravan", 0, 0, 0, 1],
-    [13, "C", "map_lighthouse", 1, 0, 0, 3],
-    [14, "C", "map_fort", 1, 0, 0, 6],
-    [15, "C", "map_wagon", 1, 0, 0, 6],
-    [16, "C", "map_crossroads", 1, 0, 0, 1],
-    [17, "H", "map_watchtower", 0, 0, 1, 1],
-    [18, "H", "map_scout_cabin", 1, 0, 1, 2],
-    [19, "H", "map_water_mill", 0, 0, 1, 6],
-    [20, "H", "map_palisade", 0, 0, 1, 3],
-    [21, "M", "map_refuge", 0, 1, 0, 6],
-    [22, "M", "map_temple", 0, 1, 0, 1],
-    [23, "M", "map_fountain", 0, 1, 0, 2],
-    [24, "M", "map_canoe", 0, 1, 0, 7]
-]"""
+
+# 15 tiles
+NOMAD_TILES = [
+    "donation_grass", "donation_canyon", "donation_desert", "donation_flower",
+    "donation_forest", "donation_mountain", "donation_water", "resettlement",
+    "resettlement", "outpost", "outpost", "sword", "sword", "treasure", "treasure"]
 
 def create_match():
 
@@ -202,24 +189,25 @@ def create_match():
         #output += str(capitols) + "\n"
 
     # tasks
-    print(map)
-    print("kurz nachdem queenies erstellt wurden")
     tasks = select_tasks(map, island, capitols)
 
-
+    nomad_tiles = nomads_expansion(map)
+    debug("nomad_tiles")
+    print(nomad_tiles)
 
     output += str(map) + "\n"
     output += str(tasks) + "\n"
 
+    debug("data send to frontend?")
+
     print(output)
 
-    print("map nochmal bevor es zum frontend geht")
-    print(map)
     return {
         "board_game_id": 1,
         "map": map,
         "tasks": tasks,
         "island": str(island),
         "caves": str(caves),
-        "capitols": str(capitols)
+        "capitols": str(capitols),
+        "nomad_tiles": nomad_tiles
     }

@@ -688,7 +688,8 @@ def start_kingdom_builder(
             "caves": game_data["caves"],
             "capitols": game_data["capitols"],
             "players": created_players,
-            "tasks": tasks_with_ids
+            "tasks": tasks_with_ids,
+            "nomad_tiles": game_data["nomad_tiles"]
         }
 
     except Exception as e:

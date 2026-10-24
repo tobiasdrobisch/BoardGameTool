@@ -287,6 +287,18 @@
     <input id="filterPlayerName" data-i18n-placeholder="enter_name">
   </div>
 
+  <div id="matchHistoryControls" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin:12px 0;">
+    <label for="matchLimit">Angezeigte Spiele / Matches to show:</label>
+    <select id="matchLimit">
+      <option value="10">10</option>
+      <option value="20" selected>20</option>
+      <option value="50">50</option>
+      <option value="100">100</option>
+      <option value="all">Alle / All</option>
+    </select>
+    <span id="matchHistoryCount" aria-live="polite"></span>
+  </div>
+
   <div id="matchHistory"></div>
 
   <hr>
@@ -635,14 +647,29 @@
     /* ================= MATCH HISTORY ================= */
     function renderMatchHistory(matches) {
       const container = document.getElementById("matchHistory");
+      const countLabel = document.getElementById("matchHistoryCount");
       container.innerHTML = "";
 
       if (!matches.length) {
         container.textContent = t("no_matches_yet");
+        countLabel.textContent = "";
         return;
       }
 
-      matches.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      // Work on a copy so sorting does not mutate allMatches or the filtered array.
+      const sortedMatches = [...matches].sort(
+        (a, b) => new Date(b.created_at) - new Date(a.created_at)
+      );
+
+      const limitValue = document.getElementById("matchLimit")?.value || "20";
+      const visibleMatches = limitValue === "all"
+        ? sortedMatches
+        : sortedMatches.slice(0, Math.max(1, parseInt(limitValue, 10) || 20));
+
+      const language = (typeof currentLang !== "undefined" ? currentLang : "en");
+      countLabel.textContent = language === "de"
+        ? `${visibleMatches.length} von ${sortedMatches.length} Spielen angezeigt`
+        : `Showing ${visibleMatches.length} of ${sortedMatches.length} matches`;
 
       const table = document.createElement("table");
 
@@ -673,7 +700,7 @@
 
       const tbody = document.createElement("tbody");
 
-      matches.forEach(m => {
+      visibleMatches.forEach(m => {
         const tr = document.createElement("tr");
 
         const tdDate = document.createElement("td");
@@ -724,6 +751,7 @@
     /* ================= FILTERS ================= */
     filterPlayerCount.onchange = applyFilters;
     filterPlayerName.oninput = applyFilters;
+    document.getElementById("matchLimit").addEventListener("change", applyFilters);
 
     function applyFilters() {
       const countFilter = filterPlayerCount.value;

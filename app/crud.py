@@ -1,3 +1,20 @@
+"""
+CRUD (Create, Read, Update, Delete) operations for database access.
+
+This module contains functions for creating, retrieving, updating, and
+deleting database records. It handles communication with the database
+using SQLAlchemy models and sessions.
+
+Typical usage:
+* Create new database records
+* Retrieve existing records
+* Update stored data
+* Delete records
+
+Example:
+crud.create_match(db, match_data)
+"""
+
 from sqlalchemy.orm import Session
 from . import models, schemas, utils
 
