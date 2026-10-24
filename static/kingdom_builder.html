@@ -1201,9 +1201,34 @@
       details.filter(x=>x.detail).forEach(({match,detail})=>{
         const taskValues = Array.isArray(detail.tasks) ? detail.tasks.map(v => typeof v === "object" ? (v.name || v.task || JSON.stringify(v)) : String(v)) : normaliseItems(detail.tasks);
         taskValues.forEach(v=>tasks.push(v));
-        const mapValues = Array.isArray(detail.map) ? detail.map.map(v => Array.isArray(v) ? (v[2] || v[0] || JSON.stringify(v)) : (typeof v === "object" ? (v.name || JSON.stringify(v)) : String(v))) : normaliseItems(detail.map);
-        mapValues.forEach(v=>tiles.push(v)); normaliseItems(detail.caves).forEach(v=>caves.push(v));
-        islands.push(...normaliseItems(detail.island)); capitols.push(detail.capitols===0||detail.capitols?String(detail.capitols):"unknown");
+
+if (Array.isArray(detail.map) && detail.map.length === 0) {
+  // map data not available
+  tiles.push("[] (no data)");
+} else {
+  const mapValues = Array.isArray(detail.map)
+    ? detail.map.map(v =>
+        Array.isArray(v)
+          ? (v[2] || v[0] || JSON.stringify(v))
+          : (typeof v === "object"
+              ? (v.name || JSON.stringify(v))
+              : String(v))
+      )
+    : normaliseItems(detail.map);
+
+  mapValues.forEach(v => tiles.push(v));
+}
+
+// Caves grouped into three categories: 0, 1 or N/A
+if (detail.caves === 0) {
+    caves.push("0");
+} else if (detail.caves === 1 || Array.isArray(detail.caves)) {
+    caves.push("1");
+} else {
+    caves.push("N/A");
+}
+islands.push(...normaliseItems(detail.island));
+        capitols.push(detail.capitols===0||detail.capitols?String(detail.capitols):"unknown");
         if(match.start_player)startPlayers.push({match,detail,player:match.start_player});
       });
       renderDistribution(grid,st("tasks"),tasks);renderDistribution(grid,st("mapTiles"),tiles);renderDistribution(grid,st("caves"),caves);renderDistribution(grid,st("islands"),islands);renderDistribution(grid,st("capitols"),capitols);
