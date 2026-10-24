@@ -196,6 +196,34 @@
       align-items: center;
       gap: 6px;
     }
+
+    /* ===== STATISTICS ===== */
+    #statisticsSection { margin-top: 24px; background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,.08); }
+    .stats-intro { color: #555; }
+    .stats-filters { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; padding: 14px; background: #f7f9fc; border: 1px solid #e0e5eb; border-radius: 8px; }
+    .stats-filters label { display: flex; flex-direction: column; gap: 5px; font-size: .9rem; }
+    .stats-filters input, .stats-filters select { min-width: 130px; max-width: 210px; padding: 7px; border: 1px solid #bbb; border-radius: 4px; background: #fff; }
+    .stats-view-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; border-bottom: 1px solid #ddd; padding-bottom: 10px; }
+    .stats-view-tabs .stats-tab { background: #e8edf5; color: #222; }
+    .stats-view-tabs .stats-tab.active { background: #007bff; color: white; }
+    #statsStatus { margin: 10px 0; color: #555; }
+    .stats-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 12px 0 20px; }
+    .stats-card { border: 1px solid #e0e5eb; border-radius: 8px; padding: 14px; background: #fbfcfe; }
+    .stats-card .value { display: block; font-size: 1.55rem; font-weight: bold; margin-top: 6px; }
+    .stats-chart-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+    .stats-chart { min-width: 0; padding: 12px; border: 1px solid #e0e5eb; border-radius: 8px; overflow-x: auto; }
+    .stats-chart h3 { margin: 0 0 10px; }
+    .stats-chart svg { display: block; max-width: 100%; overflow: visible; }
+    .stats-table-wrap { overflow-x: auto; }
+    .stats-table-wrap table { min-width: 650px; }
+    .stats-table-wrap th { background: #f0f3f7; position: sticky; top: 0; }
+    .stats-table-wrap td, .stats-table-wrap th { padding: 8px; }
+    .stats-muted { color: #666; font-size: .9rem; }
+    .stats-positive { color: #19733b; }
+    .stats-negative { color: #a52b2b; }
+    .stats-empty { padding: 20px; background: #f8f8f8; border-radius: 8px; }
+    @media (max-width: 800px) { .main-layout { flex-direction: column; } .left-panel { max-width: none; } .match-meta-grid { grid-template-columns: 1fr; } #statisticsSection { padding: 12px; } }
+
   </style>
 </head>
 
@@ -304,29 +332,37 @@
   <hr>
 
   <!-- STATISTICS -->
-  <h3 data-i18n="statistics"></h3>
+  <section id="statisticsSection">
+    <h2 data-i18n="statistics">Statistics / Statistiken</h2>
+    <p class="stats-intro" id="statsIntro">Analyse all recorded Kingdom Builder matches. Filters are shared across the views.</p>
 
-  <div style="display:flex; gap:15px; align-items:center; flex-wrap:wrap; margin-bottom:15px;">
-    <label><b>View:</b></label>
+    <div class="stats-filters">
+      <label><span data-i18n="from_date">From</span><input type="date" id="statsFromDate"></label>
+      <label><span data-i18n="to_date">To</span><input type="date" id="statsToDate"></label>
+      <label><span data-i18n="player_count">Players</span>
+        <select id="statsPlayerCount"><option value="">All</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select>
+      </label>
+      <label><span data-i18n="player">Player</span><select id="statsPlayer"><option value="">All players</option></select></label>
+      <label><span data-i18n="opponent">Opponent</span><select id="statsOpponent"><option value="">All opponents</option></select></label>
+      <label><span data-i18n="single_match">Match</span><select id="statsMatch"><option value="">All matches</option></select></label>
+      <button type="button" id="resetStatsFilters">Reset filters</button>
+    </div>
 
-    <select id="statsView">
-      <option value="totalScores">Total Scores</option>
-      <option value="wins">Wins</option>
-      <option value="tasksPlayed">Tasks played count</option>
-      <option value="scoreProgress">Score progress (Line Chart)</option>
-    </select>
-
-    <label><b>Compare Players:</b></label>
-    <select id="comparePlayers" multiple size="4" style="min-width:200px;"></select>
-  </div>
-
-  <div id="visualisation"></div>
+    <div class="stats-view-tabs" role="tablist" aria-label="Statistics views">
+      <button type="button" class="stats-tab active" data-view="players">Players</button>
+      <button type="button" class="stats-tab" data-view="days">Daily stats</button>
+      <button type="button" class="stats-tab" data-view="content">Game content</button>
+      <button type="button" class="stats-tab" data-view="personal">Personal stats</button>
+    </div>
+    <div id="statsStatus" aria-live="polite"></div>
+    <div id="statsViewContent"></div>
+  </section>
 
 
   <!-- IMPORTANT: Scripts at the end -->
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <script src="/script/i18n.js"></script>
-  <script src="/script/statistics.js"></script>
+  
 
   <script>
     /* ================= AUTH ================= */
@@ -372,14 +408,8 @@
       allMatches = await fetch("/matches/my", { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json());
       renderMatchHistory(allMatches);
 
-      // statistics setup
-      if (typeof populateComparePlayers === "function") {
-        populateComparePlayers(allMatches);
-      }
-
-      if (typeof updateStatisticsView === "function") {
-        updateStatisticsView();
-      }
+      populateStatsFilters();
+      scheduleStatsUpdate();
     }
 
     /* ================= PLAYER SELECTION ================= */
@@ -746,6 +776,8 @@
       container.appendChild(table);
 
       loadLanguage(currentLang);
+      populateStatsFilters();
+      scheduleStatsUpdate();
     }
 
     /* ================= FILTERS ================= */
@@ -1001,6 +1033,218 @@
       await fetchMyMatches();
       showMatchDetails(matchId);
     }
+
+
+    /* ================= STATISTICS DASHBOARD =================
+       Uses the existing /matches/my and /matches/{id} endpoints only.
+       Match details are loaded lazily and cached for the current page session. */
+    const statsState = { view: "players", detailCache: new Map(), filteredMatches: [], filteredDetails: [] };
+    const statsContent = document.getElementById("statsViewContent");
+    const statsStatus = document.getElementById("statsStatus");
+    const statsText = {
+      en: { all:"All", allPlayers:"All players", allOpponents:"All opponents", allMatches:"All matches", from:"From", to:"To", reset:"Reset filters", loading:"Loading match details…", noMatches:"No matches match these filters.", players:"Players", matches:"Matches", wins:"Wins", losses:"Losses", winRate:"Win rate", totalPoints:"Total points", avgPoints:"Avg. points / match", dailyMatches:"Matches per day", dailyWins:"Wins per day", dailyPoints:"Points per day", scoreDifference:"Point difference per day", tasks:"Tasks", mapTiles:"Map tiles", caves:"Caves", islands:"Islands", capitols:"Capitols", startPlayer:"Starting player", personal:"Personal statistics", bestGap:"Largest winning margin", highest:"Highest score", lowest:"Lowest score", longestWin:"Longest win streak", longestLoss:"Longest losing streak", bestOpponent:"Best opponent", hardestOpponent:"Hardest opponent", bestDay:"Best day", noData:"Not enough recorded data for this statistic.", selectedPlayer:"Selected player", compareTo:"Difference vs. first selected player", played:"Played", date:"Date", score:"Score", count:"Count", rate:"Rate", item:"Item", day:"Day", details:"Details", noPlayer:"Select a player to see personal statistics", allTied:"Tie", startWinRate:"Starting-player win rate", avgDiff:"Average score difference" },
+      de: { all:"Alle", allPlayers:"Alle Spieler", allOpponents:"Alle Mitspieler", allMatches:"Alle Partien", from:"Von", to:"Bis", reset:"Filter zurücksetzen", loading:"Partiedetails werden geladen…", noMatches:"Keine Partien entsprechen den Filtern.", players:"Spieler", matches:"Partien", wins:"Siege", losses:"Niederlagen", winRate:"Siegquote", totalPoints:"Gesamtpunkte", avgPoints:"Ø Punkte / Partie", dailyMatches:"Partien pro Tag", dailyWins:"Siege pro Tag", dailyPoints:"Punkte pro Tag", scoreDifference:"Punktedifferenz pro Tag", tasks:"Aufgaben", mapTiles:"Kartenteile", caves:"Höhlen", islands:"Inseln", capitols:"Kapitole", startPlayer:"Startspieler", personal:"Persönliche Statistiken", bestGap:"Größter Siegesabstand", highest:"Höchste Punktzahl", lowest:"Niedrigste Punktzahl", longestWin:"Längste Siegesserie", longestLoss:"Längste Niederlagenserie", bestOpponent:"Erfolgreichster Mitspieler", hardestOpponent:"Schwierigster Mitspieler", bestDay:"Bester Spieltag", noData:"Für diese Statistik liegen nicht genügend Daten vor.", selectedPlayer:"Ausgewählter Spieler", compareTo:"Differenz zum ersten ausgewählten Spieler", played:"Gespielt", date:"Datum", score:"Punkte", count:"Anzahl", rate:"Quote", item:"Eintrag", day:"Tag", details:"Details", noPlayer:"Wähle einen Spieler für persönliche Statistiken aus", allTied:"Unentschieden", startWinRate:"Siegquote als Startspieler", avgDiff:"Ø Punktedifferenz" }
+    };
+    function st(key) { const lang = (typeof currentLang !== "undefined" && currentLang === "de") ? "de" : "en"; return statsText[lang][key] || key; }
+    function safeDate(match) { const d = new Date(match.created_at); return Number.isNaN(d.getTime()) ? null : d; }
+    function matchDay(match) { return (match.date && /^\d{4}-\d{2}-\d{2}/.test(match.date)) ? match.date.slice(0,10) : (safeDate(match)?.toISOString().slice(0,10) || ""); }
+    function refreshStatsLabels() {
+      const de = typeof currentLang !== "undefined" && currentLang === "de";
+      const labels = {
+        statsIntro: de ? "Analyse aller gespeicherten Kingdom-Builder-Partien. Die Filter gelten für alle Ansichten." : "Analyse all recorded Kingdom Builder matches. Filters are shared across the views.",
+        resetStatsFilters: de ? "Filter zurücksetzen" : "Reset filters",
+        "players": de ? "Spieler" : "Players",
+        "days": de ? "Tagesstatistiken" : "Daily stats",
+        "content": de ? "Spielinhalte" : "Game content",
+        "personal": de ? "Persönliche Statistiken" : "Personal stats"
+      };
+      const intro = document.getElementById("statsIntro"); if (intro) intro.textContent = labels.statsIntro;
+      const reset = document.getElementById("resetStatsFilters"); if (reset) reset.textContent = labels.resetStatsFilters;
+      document.querySelectorAll(".stats-tab").forEach(btn => { btn.textContent = labels[btn.dataset.view] || btn.textContent; });
+      const spans = document.querySelectorAll(".stats-filters label span");
+      const names = de ? ["Von","Bis","Spieleranzahl","Spieler","Mitspieler","Einzelne Partie"] : ["From","To","Players","Player","Opponent","Single match"];
+      spans.forEach((span,i)=>{ if(names[i]) span.textContent=names[i]; });
+      const introHeading = document.querySelector("#statisticsSection > h2"); if (introHeading) introHeading.textContent = de ? "Statistiken" : "Statistics";
+    }
+    function scoreEntries(match) { return Object.values(match.scores || {}).map(s => ({ username: s.username, score: Number(s.score) || 0 })); }
+    function matchWinnerNames(match) {
+      const scores = scoreEntries(match); if (!scores.length) return [];
+      const max = Math.max(...scores.map(s => s.score)); return scores.filter(s => s.score === max).map(s => s.username);
+    }
+    function selectedValues(select) { return Array.from(select.selectedOptions || []).map(o => o.value).filter(Boolean); }
+    function currentFilteredMatches() {
+      const from = document.getElementById("statsFromDate").value;
+      const to = document.getElementById("statsToDate").value;
+      const count = document.getElementById("statsPlayerCount").value;
+      const player = document.getElementById("statsPlayer").value;
+      const opponent = document.getElementById("statsOpponent").value;
+      const matchId = document.getElementById("statsMatch").value;
+      return allMatches.filter(m => {
+        const day = matchDay(m);
+        if (from && (!day || day < from)) return false;
+        if (to && (!day || day > to)) return false;
+        if (count && Number(m.player_count) !== Number(count)) return false;
+        const names = (m.players || []).map(p => p.username);
+        if (player && !names.includes(player)) return false;
+        if (opponent && (!names.includes(opponent) || opponent === player)) return false;
+        if (matchId && String(m.match_id) !== matchId) return false;
+        return true;
+      }).sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
+    }
+    function populateStatsFilters() {
+      refreshStatsLabels();
+      const names = [...new Set(allMatches.flatMap(m => (m.players || []).map(p => p.username)))].sort((a,b)=>a.localeCompare(b));
+      const fill = (id, firstLabel, values, keep=true) => {
+        const el = document.getElementById(id); const previous = keep ? el.value : "";
+        el.innerHTML = ""; const first = document.createElement("option"); first.value=""; first.textContent=firstLabel; el.appendChild(first);
+        values.forEach(v => { const o=document.createElement("option"); o.value=v.value; o.textContent=v.label; el.appendChild(o); });
+        if ([...el.options].some(o=>o.value===previous)) el.value=previous;
+      };
+      fill("statsPlayer", st("allPlayers"), names.map(n=>({value:n,label:n})));
+      fill("statsOpponent", st("allOpponents"), names.map(n=>({value:n,label:n})));
+      fill("statsMatch", st("allMatches"), [...allMatches].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at)).map(m=>({value:String(m.match_id),label:`#${m.match_id} · ${m.date || m.created_at}`})));
+    }
+    async function getMatchDetail(match) {
+      if (statsState.detailCache.has(String(match.match_id))) return statsState.detailCache.get(String(match.match_id));
+      const response = await fetch(`/matches/${match.match_id}`, { headers: { Authorization: `Bearer ${token}` } });
+      if (!response.ok) throw new Error(`Could not load match ${match.match_id} (${response.status})`);
+      const data = await response.json(); statsState.detailCache.set(String(match.match_id), data); return data;
+    }
+    async function loadStatsDetails(matches) {
+      const result = [];
+      // Small batches avoid flooding the API when the user selects all historical matches.
+      for (let i=0; i<matches.length; i+=5) {
+        const batch = await Promise.all(matches.slice(i,i+5).map(async m => {
+          try { return { match:m, detail: await getMatchDetail(m), error:null }; }
+          catch (error) { return { match:m, detail:null, error }; }
+        }));
+        result.push(...batch);
+      }
+      return result;
+    }
+    function makeElement(tag, text, className) { const e=document.createElement(tag); if (text !== undefined && text !== null) e.textContent=String(text); if(className)e.className=className; return e; }
+    function makeCard(label, value) { const card=makeElement("div",null,"stats-card"); card.append(makeElement("span",label),makeElement("span",value,"value")); return card; }
+    function renderStatsTable(headers, rows) {
+      const wrap=makeElement("div",null,"stats-table-wrap"); const table=makeElement("table"); const thead=makeElement("thead"); const hr=makeElement("tr");
+      headers.forEach(h=>hr.appendChild(makeElement("th",h))); thead.appendChild(hr); table.appendChild(thead);
+      const tbody=makeElement("tbody"); rows.forEach(row=>{const tr=makeElement("tr"); row.forEach(v=>tr.appendChild(makeElement("td",v === null || v === undefined ? "—" : v))); tbody.appendChild(tr);});
+      table.appendChild(tbody); wrap.appendChild(table); return wrap;
+    }
+    function chartContainer(title) { const box=makeElement("div",null,"stats-chart"); box.appendChild(makeElement("h3",title)); return box; }
+    function drawBarChart(container, data, options={}) {
+      if (!data.length) { container.appendChild(makeElement("p",st("noData"),"stats-muted")); return; }
+      const width=Math.max(300, Math.min(760, data.length*58+70)); const height=260, margin={top:15,right:15,bottom:60,left:45};
+      const svg=d3.select(container).append("svg").attr("viewBox",`0 0 ${width} ${height}`).attr("width",width).attr("height",height);
+      const max=Math.max(1,...data.map(d=>Math.max(0,Number(d.value)||0))); const x=d3.scaleBand().domain(data.map(d=>d.label)).range([margin.left,width-margin.right]).padding(.2); const y=d3.scaleLinear().domain([Math.min(0,...data.map(d=>Number(d.value)||0)),max*1.1]).nice().range([height-margin.bottom,margin.top]);
+      svg.append("g").attr("transform",`translate(0,${height-margin.bottom})`).call(d3.axisBottom(x)).selectAll("text").attr("transform","rotate(-35)").style("text-anchor","end");
+      svg.append("g").attr("transform",`translate(${margin.left},0)`).call(d3.axisLeft(y).ticks(5));
+      svg.selectAll(".bar").data(data).join("rect").attr("x",d=>x(d.label)).attr("y",d=>y(Math.max(0,Number(d.value)||0))).attr("width",x.bandwidth()).attr("height",d=>Math.abs(y(Number(d.value)||0)-y(0))).attr("fill",options.fill || "#3978bd");
+      svg.selectAll(".bar-label").data(data).join("text").attr("x",d=>x(d.label)+x.bandwidth()/2).attr("y",d=>y(Math.max(0,Number(d.value)||0))-4).attr("text-anchor","middle").attr("font-size",10).text(d=>d.value);
+    }
+    function drawLineChart(container, series, title) {
+      if (!series.length) { container.appendChild(makeElement("p",st("noData"),"stats-muted")); return; }
+      const width=Math.max(320,Math.min(800,series.length*48+80)), height=260, margin={top:15,right:15,bottom:60,left:45};
+      const svg=d3.select(container).append("svg").attr("viewBox",`0 0 ${width} ${height}`).attr("width",width).attr("height",height);
+      const x=d3.scalePoint().domain(series.map(d=>d.label)).range([margin.left,width-margin.right]); const y=d3.scaleLinear().domain([Math.min(0,...series.map(d=>d.value)),Math.max(1,...series.map(d=>d.value))]).nice().range([height-margin.bottom,margin.top]);
+      svg.append("g").attr("transform",`translate(0,${height-margin.bottom})`).call(d3.axisBottom(x)).selectAll("text").attr("transform","rotate(-35)").style("text-anchor","end");
+      svg.append("g").attr("transform",`translate(${margin.left},0)`).call(d3.axisLeft(y).ticks(5));
+      svg.append("path").datum(series).attr("fill","none").attr("stroke","#3978bd").attr("stroke-width",2).attr("d",d3.line().x(d=>x(d.label)).y(d=>y(d.value)));
+      svg.selectAll("circle").data(series).join("circle").attr("cx",d=>x(d.label)).attr("cy",d=>y(d.value)).attr("r",3.5).attr("fill","#3978bd");
+    }
+    function getPerPlayerStats(matches) {
+      const players=new Map();
+      matches.forEach(m=>{
+        const scores=scoreEntries(m); const winners=matchWinnerNames(m);
+        scores.forEach(s=>{
+          if(!players.has(s.username)) players.set(s.username,{name:s.username,matches:0,wins:0,losses:0,total:0,scores:[],winsByOpponent:new Map(),gamesByOpponent:new Map()});
+          const p=players.get(s.username); p.matches++; p.total+=s.score; p.scores.push(s.score);
+          if(winners.includes(s.username)) p.wins++; else p.losses++;
+          scores.filter(o=>o.username!==s.username).forEach(o=>{
+            p.gamesByOpponent.set(o.username,(p.gamesByOpponent.get(o.username)||0)+1);
+            if(winners.includes(s.username)) p.winsByOpponent.set(o.username,(p.winsByOpponent.get(o.username)||0)+1);
+          });
+        });
+      });
+      return [...players.values()].map(p=>({...p,winRate:p.matches?p.wins/p.matches*100:0,avg:p.matches?p.total/p.matches:0}));
+    }
+    function renderPlayerStats(matches) {
+      const stats=getPerPlayerStats(matches).sort((a,b)=>b.winRate-a.winRate || b.avg-a.avg);
+      if(!stats.length){statsContent.appendChild(makeElement("p",st("noMatches"),"stats-empty"));return;}
+      statsContent.appendChild(makeElement("p",`${matches.length} ${st("matches")} · ${stats.length} ${st("players")}`,"stats-muted"));
+      const firstName=stats[0]?.name;
+      const headers=[st("players"),st("matches"),st("wins"),st("losses"),st("winRate"),st("totalPoints"),st("avgPoints")];
+      if(firstName) headers.push(`${st("compareTo")} (${firstName})`);
+      const base=stats.find(p=>p.name===firstName);
+      const rows=stats.map(p=>[p.name,p.matches,p.wins,p.losses,`${p.winRate.toFixed(1)}%`,p.total,p.avg.toFixed(1),...(base?[`${p.avg-base.avg>=0?"+":""}${(p.avg-base.avg).toFixed(1)} Ø`]:[])]);
+      statsContent.appendChild(renderStatsTable(headers,rows));
+      const chart=chartContainer(st("winRate")); statsContent.appendChild(chart); drawBarChart(chart,stats.map(p=>({label:p.name,value:Number(p.winRate.toFixed(1))})));
+    }
+    function renderDailyStats(matches) {
+      const byDay=new Map();
+      matches.forEach(m=>{const d=safeDate(m);if(!d)return;const day=matchDay(m); if(!day) return; if(!byDay.has(day))byDay.set(day,{day,matches:0,wins:0,points:0,diff:0});const row=byDay.get(day);row.matches++;
+        const scores=scoreEntries(m);const winners=matchWinnerNames(m); const selected=document.getElementById("statsPlayer").value;
+        const target=selected?scores.find(s=>s.username===selected):null;
+        if(selected){if(winners.includes(selected))row.wins++; if(target){row.points+=target.score;const others=scores.filter(s=>s.username!==selected);if(others.length)row.diff+=target.score-Math.max(...others.map(s=>s.score));}}
+        else {row.wins+=winners.length;row.points+=scores.reduce((sum,s)=>sum+s.score,0);row.diff+=scores.length?Math.max(...scores.map(s=>s.score))-Math.min(...scores.map(s=>s.score)):0;}
+      });
+      const days=[...byDay.values()].sort((a,b)=>a.day.localeCompare(b.day));
+      statsContent.appendChild(makeElement("p",document.getElementById("statsPlayer").value ? `${st("selectedPlayer")}: ${document.getElementById("statsPlayer").value}` : (typeof currentLang!=="undefined"&&currentLang==="de"?"Ohne Spielerauswahl zeigen Punkte und Differenz die Summen aller Spieler pro Partie.":"With no player selected, points and difference aggregate all players in each match."),"stats-muted"));
+      const cards=makeElement("div",null,"stats-cards");cards.append(makeCard(st("matches"),matches.length),makeCard(st("dailyMatches"),days.length),makeCard(st("wins"),days.reduce((s,d)=>s+d.wins,0)));statsContent.appendChild(cards);
+      const grid=makeElement("div",null,"stats-chart-grid");statsContent.appendChild(grid);
+      [[st("dailyMatches"),"matches"],[st("dailyWins"),"wins"],[st("dailyPoints"),"points"],[st("scoreDifference"),"diff"]].forEach(([title,key])=>{const c=chartContainer(title);grid.appendChild(c);drawLineChart(c,days.map(d=>({label:d.day.slice(5),value:Number(d[key].toFixed(1))})),title);});
+      statsContent.appendChild(renderStatsTable([st("day"),st("matches"),st("wins"),st("totalPoints"),st("scoreDifference")],days.map(d=>[d.day,d.matches,d.wins,d.points,d.diff])));
+    }
+    function normaliseItems(value) { if(value===null||value===undefined||value==="")return []; if(Array.isArray(value))return value.flatMap(normaliseItems); if(typeof value==="object")return [value.name||value.type||JSON.stringify(value)]; return [String(value)]; }
+    function renderDistribution(grid,title,items) { const box=chartContainer(title);grid.appendChild(box); if(!items.length){box.appendChild(makeElement("p",st("noData"),"stats-muted"));return;} const counts=new Map();items.forEach(item=>counts.set(item,(counts.get(item)||0)+1));const data=[...counts.entries()].sort((a,b)=>b[1]-a[1]).map(([label,value])=>({label,value}));drawBarChart(box,data);box.appendChild(renderStatsTable([st("item"),st("count")],data.map(d=>[d.label,d.value]))); }
+    async function renderGameContent(details) {
+      const grid=makeElement("div",null,"stats-chart-grid");statsContent.appendChild(grid); const tasks=[],tiles=[],caves=[],islands=[],capitols=[],startPlayers=[];
+      details.filter(x=>x.detail).forEach(({match,detail})=>{
+        const taskValues = Array.isArray(detail.tasks) ? detail.tasks.map(v => typeof v === "object" ? (v.name || v.task || JSON.stringify(v)) : String(v)) : normaliseItems(detail.tasks);
+        taskValues.forEach(v=>tasks.push(v));
+        const mapValues = Array.isArray(detail.map) ? detail.map.map(v => Array.isArray(v) ? (v[2] || v[0] || JSON.stringify(v)) : (typeof v === "object" ? (v.name || JSON.stringify(v)) : String(v))) : normaliseItems(detail.map);
+        mapValues.forEach(v=>tiles.push(v)); normaliseItems(detail.caves).forEach(v=>caves.push(v));
+        islands.push(...normaliseItems(detail.island)); capitols.push(detail.capitols===0||detail.capitols?String(detail.capitols):"unknown");
+        if(match.start_player)startPlayers.push({match,detail,player:match.start_player});
+      });
+      renderDistribution(grid,st("tasks"),tasks);renderDistribution(grid,st("mapTiles"),tiles);renderDistribution(grid,st("caves"),caves);renderDistribution(grid,st("islands"),islands);renderDistribution(grid,st("capitols"),capitols);
+      const starts=new Map();startPlayers.forEach(({match,player})=>{const w=matchWinnerNames(match).includes(player);if(!starts.has(player))starts.set(player,{played:0,wins:0});const r=starts.get(player);r.played++;if(w)r.wins++;});
+      const startBox=chartContainer(st("startPlayer"));grid.appendChild(startBox);if(starts.size){const rows=[...starts.entries()].map(([name,r])=>[name,r.played,r.wins,`${(r.wins/r.played*100).toFixed(1)}%`]);startBox.appendChild(renderStatsTable([st("players"),st("matches"),st("wins"),st("startWinRate")],rows));}else startBox.appendChild(makeElement("p",st("noData"),"stats-muted"));
+    }
+    function longestStreak(matches, player, shouldWin) { let best=0,current=0;matches.forEach(m=>{const scores=scoreEntries(m);if(!scores.some(s=>s.username===player)){current=0;return;}const won=matchWinnerNames(m).includes(player);if(won===shouldWin){current++;best=Math.max(best,current);}else current=0;});return best; }
+    function renderPersonalStats(matches) {
+      const player=document.getElementById("statsPlayer").value; if(!player){statsContent.appendChild(makeElement("p",st("noPlayer"),"stats-empty"));return;}
+      const appearances=matches.filter(m=>(m.players||[]).some(p=>p.username===player)); if(!appearances.length){statsContent.appendChild(makeElement("p",st("noMatches"),"stats-empty"));return;}
+      const scores=appearances.flatMap(m=>scoreEntries(m).filter(s=>s.username===player).map(s=>({match:m,score:s.score,won:matchWinnerNames(m).includes(player)})));
+      const gaps=appearances.map(m=>{const ss=scoreEntries(m),mine=ss.find(s=>s.username===player);const other=ss.filter(s=>s.username!==player);return mine&&other.length?{match:m,gap:mine.score-Math.max(...other.map(s=>s.score)),score:mine.score}:null;}).filter(Boolean);
+      const bestGap=gaps.length?gaps.reduce((a,b)=>a.gap>b.gap?a:b):null; const high=scores.length?Math.max(...scores.map(s=>s.score)):null; const low=scores.length?Math.min(...scores.map(s=>s.score)):null;
+      const cards=makeElement("div",null,"stats-cards");cards.append(makeCard(st("matches"),appearances.length),makeCard(st("wins"),scores.filter(s=>s.won).length),makeCard(st("losses"),scores.filter(s=>!s.won).length),makeCard(st("winRate"),`${(scores.filter(s=>s.won).length/Math.max(1,scores.length)*100).toFixed(1)}%`),makeCard(st("highest"),high??"—"),makeCard(st("lowest"),low??"—"),makeCard(st("bestGap"),bestGap?`${bestGap.gap>0?"+":""}${bestGap.gap} (#${bestGap.match.match_id})`:"—"),makeCard(st("longestWin"),longestStreak(appearances,player,true)),makeCard(st("longestLoss"),longestStreak(appearances,player,false)));statsContent.appendChild(cards);
+      const opponentStats=new Map();appearances.forEach(m=>{const ss=scoreEntries(m),mine=ss.find(s=>s.username===player);if(!mine)return;ss.filter(s=>s.username!==player).forEach(o=>{if(!opponentStats.has(o.username))opponentStats.set(o.username,{played:0,wins:0,points:0,opponentPoints:0});const r=opponentStats.get(o.username);r.played++;r.points+=mine.score;r.opponentPoints+=o.score;if(mine.score>o.score)r.wins++;});});
+      const opponents=[...opponentStats.entries()].map(([name,r])=>({...r,name,winRate:r.played?r.wins/r.played*100:0,avgDiff:(r.points-r.opponentPoints)/r.played})).sort((a,b)=>b.winRate-a.winRate);
+      const bestOpp=opponents.filter(o=>o.played>=1).sort((a,b)=>b.winRate-a.winRate)[0];const hardest=opponents.filter(o=>o.played>=1).sort((a,b)=>a.winRate-b.winRate)[0];
+      const opponentBox=chartContainer(`${st("bestOpponent")} / ${st("hardestOpponent")}`);statsContent.appendChild(opponentBox);opponentBox.appendChild(renderStatsTable([st("opponent"),st("matches"),st("wins"),st("winRate"),st("avgDiff")],opponents.map(o=>[o.name,o.played,o.wins,`${o.winRate.toFixed(1)}%`,`${o.avgDiff>0?"+":""}${o.avgDiff.toFixed(1)}`])));
+      const bestDayMap=new Map();scores.forEach(s=>{const day=matchDay(s.match);if(!day)return;if(!bestDayMap.has(day))bestDayMap.set(day,{day,points:0,matches:0});const d=bestDayMap.get(day);d.points+=s.score;d.matches++;});const bestDay=[...bestDayMap.values()].sort((a,b)=>(b.points/b.matches)-(a.points/a.matches))[0];
+      const summary=makeElement("p",`${st("bestOpponent")}: ${bestOpp?`${bestOpp.name} (${bestOpp.winRate.toFixed(1)}%)`:"—"} · ${st("hardestOpponent")}: ${hardest?`${hardest.name} (${hardest.winRate.toFixed(1)}%)`:"—"} · ${st("bestDay")}: ${bestDay?`${bestDay.day} (${(bestDay.points/bestDay.matches).toFixed(1)} Ø)`:"—"}`,"stats-muted");statsContent.appendChild(summary);
+    }
+    async function updateStatsDashboard() {
+      if(!statsContent)return;
+      const matches=currentFilteredMatches(); statsState.filteredMatches=matches; statsContent.innerHTML="";
+      if(!matches.length){statsStatus.textContent="";statsContent.appendChild(makeElement("p",st("noMatches"),"stats-empty"));return;}
+      if(statsState.view==="players"){statsStatus.textContent=`${matches.length} ${st("matches")}`;renderPlayerStats(matches);return;}
+      statsStatus.textContent=`${matches.length} ${st("matches")} · ${st("loading")}`;
+      const details=await loadStatsDetails(matches);statsState.filteredDetails=details;
+      const failed=details.filter(x=>x.error).length;
+      statsStatus.textContent=`${matches.length} ${st("matches")}${failed?` · ${failed} detail(s) unavailable`:""}`;
+      statsContent.innerHTML="";
+      if(statsState.view==="days")renderDailyStats(matches);
+      else if(statsState.view==="content")await renderGameContent(details);
+      else if(statsState.view==="personal")renderPersonalStats(matches);
+    }
+    let statsRenderRequest=0;
+    function scheduleStatsUpdate() { refreshStatsLabels(); const request=++statsRenderRequest; updateStatsDashboard().catch(err=>{console.error("Statistics error",err);if(request===statsRenderRequest){statsStatus.textContent=err.message;}}); }
+    document.querySelectorAll(".stats-tab").forEach(btn=>btn.addEventListener("click",()=>{document.querySelectorAll(".stats-tab").forEach(b=>b.classList.toggle("active",b===btn));statsState.view=btn.dataset.view;scheduleStatsUpdate();}));
+    ["statsFromDate","statsToDate","statsPlayerCount","statsPlayer","statsOpponent","statsMatch"].forEach(id=>document.getElementById(id).addEventListener("change",scheduleStatsUpdate));
+    document.getElementById("resetStatsFilters").addEventListener("click",()=>{["statsFromDate","statsToDate","statsPlayerCount","statsPlayer","statsOpponent","statsMatch"].forEach(id=>document.getElementById(id).value="");scheduleStatsUpdate();});
+
   </script>
 
 </body>
