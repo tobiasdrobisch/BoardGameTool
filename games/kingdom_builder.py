@@ -1,6 +1,5 @@
 import random
 import datetime
-from app.debug_utils import debug
 
 setup_guide = ""
 
@@ -192,13 +191,10 @@ def create_match():
     tasks = select_tasks(map, island, capitols)
 
     nomad_tiles = nomads_expansion(map)
-    debug("nomad_tiles")
     print(nomad_tiles)
 
     output += str(map) + "\n"
     output += str(tasks) + "\n"
-
-    debug("data send to frontend?")
 
     print(output)
 
