@@ -1220,9 +1220,9 @@ if (Array.isArray(detail.map) && detail.map.length === 0) {
 }
 
 // Caves grouped into three categories: 0, 1 or N/A
-if (detail.caves === 0) {
+if (detail.caves === "0") {
     caves.push("0");
-} else if (detail.caves === 1 || Array.isArray(detail.caves)) {
+} else if (detail.caves === "caves" || Array.isArray(detail.caves)) {
     caves.push("1");
 } else {
     caves.push("N/A");
